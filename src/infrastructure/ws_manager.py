@@ -16,7 +16,7 @@ class ConnectionManager:
         for ws in self._active:
             await ws.send_text(message)
 
-    async def send_personal(self, message: str, ws: WebSocket) -> None:
+    async def send_personal(self, message: str, ws: WebSocket) -> None:  # TODO: use for DM/notifications
         await ws.send_text(message)
 
 

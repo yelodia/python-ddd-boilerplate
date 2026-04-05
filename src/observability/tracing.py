@@ -1,3 +1,4 @@
+from fastapi import FastAPI
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -8,9 +9,9 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
-def setup_tracing(app=None) -> None:  # type: ignore[no-untyped-def]
+def setup_tracing(app: FastAPI | None = None) -> None:
     from src.config import get_settings
-    from src.database import engine
+    from src.infrastructure.database.base import engine
 
     settings = get_settings()
     if not settings.otel_enabled:
