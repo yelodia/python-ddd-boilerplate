@@ -4,22 +4,22 @@ from pathlib import Path
 
 import aiofiles
 
-from src.core.items.entities import ItemData
-from src.core.items.repository import AbstractItemRepository
+from src.core.items.entities import Item
+from src.core.items.repository import ItemRepository
 
 
-class JsonItemRepository(AbstractItemRepository):
+class JsonItemRepository(ItemRepository):
     def __init__(self, data_dir: str = "data") -> None:
         self.path = Path(data_dir) / "items.json"
 
-    async def get_by_id(self, item_id: int) -> ItemData | None:
+    async def get_by_id(self, item_id: int) -> Item | None:
         found = next((i for i in await self._load() if i["id"] == item_id), None)
         return self._to_domain(found) if found else None
 
-    async def get_all(self, offset: int = 0, limit: int = 20) -> list[ItemData]:
-        return [self._to_domain(i) for i in (await self._load())[offset : offset + limit]]
+    async def get_all(self, offset: int = 0, limit: int = 20) -> list[Item]:
+        return [self._to_domain(i) for i in (await self._load())[offset: offset + limit]]
 
-    async def create(self, title: str, description: str | None) -> ItemData:
+    async def create(self, title: str, description: str | None) -> Item:
         items = await self._load()
         new_id = max((i["id"] for i in items), default=0) + 1
         record = {
@@ -33,7 +33,7 @@ class JsonItemRepository(AbstractItemRepository):
         await self._save(items)
         return self._to_domain(record)
 
-    async def update(self, item: ItemData) -> ItemData:
+    async def update(self, item: Item) -> Item:
         items = await self._load()
         for i, record in enumerate(items):
             if record["id"] == item.id:
@@ -52,8 +52,8 @@ class JsonItemRepository(AbstractItemRepository):
         items = [i for i in await self._load() if i["id"] != item_id]
         await self._save(items)
 
-    def _to_domain(self, record: dict) -> ItemData:
-        return ItemData(
+    def _to_domain(self, record: dict) -> Item:
+        return Item(
             id=record["id"],
             title=record["title"],
             description=record.get("description"),
@@ -70,3 +70,7 @@ class JsonItemRepository(AbstractItemRepository):
         content = json.dumps(items, indent=2, ensure_ascii=False, default=str)
         async with aiofiles.open(self.path, "w", encoding="utf-8") as f:
             await f.write(content)
+
+
+def item_repository_factory(data_dir_path: str) -> ItemRepository:
+    return JsonItemRepository(data_dir=data_dir_path)

@@ -10,7 +10,7 @@ class AuthService:
     async def get_user(self, user_id: int) -> UserData:
         user = await self.repo.get_by_id(user_id)
         if not user:
-            raise UserNotFoundError(user_id)
+            raise UserNotFoundError(f"User {user_id} not found")
         return user
 
     async def get_user_by_email(self, email: str) -> UserData | None:

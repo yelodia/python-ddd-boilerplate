@@ -1,7 +1,6 @@
-from collections.abc import AsyncGenerator
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import (
-    AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
@@ -33,7 +32,7 @@ else:
     async_session_factory = None  # type: ignore[assignment]
 
 
-async def get_session() -> AsyncGenerator[AsyncSession | None, None]:
+async def get_session():
     """Yield a raw database session. No transaction management."""
     if async_session_factory is None:
         yield None

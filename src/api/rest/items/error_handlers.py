@@ -1,18 +1,19 @@
-from fastapi import Request
-from fastapi.responses import JSONResponse
-
 from src.core.items.exceptions import ItemAlreadyExistsError, ItemNotFoundError
 
-
-async def item_not_found_handler(request: Request, exc: ItemNotFoundError) -> JSONResponse:
-    return JSONResponse(status_code=404, content={"detail": str(exc)})
-
-
-async def item_already_exists_handler(request: Request, exc: ItemAlreadyExistsError) -> JSONResponse:
-    return JSONResponse(status_code=409, content={"detail": str(exc)})
+http_codes = {
+    ItemNotFoundError: 404,
+    ItemAlreadyExistsError: 409,
+}  # TODO придумать, как организовать маппинг доменных ошибок к HTTP-кодам
+# TODO как пробросить эту "карту" на уровень выше, в общедоменный api/rest/exception_handlers.py
 
 
-exception_handlers = {
-    ItemNotFoundError: item_not_found_handler,
-    ItemAlreadyExistsError: item_already_exists_handler,
-}
+def get_exception_handlers(request, exc):  # другой пример "мапинга" бизнесовых ошибок оп HTTP-кодам
+    status_code = 400
+
+    if isinstance(exc, UserNotFoundError):
+        status_code = 404
+
+    if isinstance(exc, RateLimitError):
+        status_code = 429
+
+    return JSONResponse(status_code=status_code, content={"detail": str(exc)})

@@ -1,9 +1,11 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
-from src.api.dependencies import ItemUseCasesDep, UowDep, WsManagerDep
-from src.api.rest.items.schemas import ItemCreate, ItemResponse, ItemUpdate
+from api.dependencies import ItemUseCasesDep, UowDep, WsManagerDep
+from api.rest.items.schemas import ItemCreate, ItemResponse, ItemUpdate
 
-router = APIRouter()
+from application.items.use_cases import CreateItemUseCase, create_item_use_case
+
+router = APIRouter(prefix="/items", tags=["items"])
 
 
 @router.get("/", response_model=list[ItemResponse])
@@ -25,10 +27,9 @@ async def get_item(item_id: int, use_cases: ItemUseCasesDep) -> ItemResponse:
 @router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_item(
     body: ItemCreate,
-    use_cases: ItemUseCasesDep,
     _uow: UowDep,
 ) -> ItemResponse:
-    item = await use_cases.create_item(title=body.title, description=body.description)
+    item = create_item_use_case().execute(title=body.title, description=body.description)
     return ItemResponse.from_domain(item)
 
 

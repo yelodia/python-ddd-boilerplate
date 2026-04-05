@@ -1,23 +1,17 @@
-"""Auto-discovery of domain exception handlers.
+from starlette.responses import JSONResponse
 
-Scans ``api/rest/*/error_handlers.py`` modules for an ``exception_handlers``
-dict and merges them into a single registry.  Adding a new domain requires
-only creating its ``error_handlers.py`` — no changes to ``main.py``.
-"""
+from common.exceptions import NotFoundError, RateLimitError
 
-import importlib
-from collections.abc import Callable
-from pathlib import Path
+from api.rest.items.error_handlers import http_codes
 
 
-def collect_exception_handlers() -> dict[type[Exception], Callable]:
-    handlers: dict[type[Exception], Callable] = {}
-    rest_dir = Path(__file__).parent
-    for entry in sorted(rest_dir.iterdir()):
-        if not entry.is_dir() or not (entry / "error_handlers.py").exists():
-            continue
-        module = importlib.import_module(f"src.api.rest.{entry.name}.error_handlers")
-        domain_handlers = getattr(module, "exception_handlers", None)
-        if domain_handlers:
-            handlers.update(domain_handlers)
-    return handlers
+async def domain_exception_handler(request, exc):
+    status_code = 400
+
+    if isinstance(exc, NotFoundError):
+        status_code = 404
+
+    if isinstance(exc, RateLimitError):
+        status_code = 429
+
+    return JSONResponse(status_code=status_code, content={"detail": str(exc)})

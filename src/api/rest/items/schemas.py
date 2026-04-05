@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-if TYPE_CHECKING:
-    from src.core.items.entities import ItemData
+from src.core.items.entities import Item
 
 
 class ItemCreate(BaseModel):
@@ -27,7 +25,7 @@ class ItemResponse(BaseModel):
     created_at: datetime
 
     @classmethod
-    def from_domain(cls, item: ItemData) -> ItemResponse:
+    def from_domain(cls, item: Item) -> ItemResponse:
         return cls(
             id=item.id,
             title=item.title,

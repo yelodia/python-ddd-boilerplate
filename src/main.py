@@ -1,17 +1,18 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 
-from src.api.rest.auth.views import router as auth_router
-from src.api.rest.exception_handlers import collect_exception_handlers
-from src.api.rest.items.views import router as items_router
-from src.common.schemas import HealthResponse
-from src.config import get_settings
-from src.middleware.correlation import CorrelationMiddleware
-from src.middleware.logging import LoggingMiddleware
-from src.observability.logging import setup_logging
-from src.observability.tracing import setup_tracing
+from common.exceptions import DomainError
+from api.rest.auth.views import router as auth_router
+from api.rest.exception_handlers import domain_exception_handler
+from api.rest.items.views import router as items_router
+from common.schemas import HealthResponse
+from config import get_settings
+from middleware.correlation import CorrelationMiddleware
+from middleware.logging import LoggingMiddleware
+from observability.logging import setup_logging
+from observability.tracing import setup_tracing
 
 
 @asynccontextmanager
@@ -28,7 +29,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-def create_app() -> FastAPI:
+async def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
@@ -40,14 +41,18 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # noinspection PyTypeChecker
     app.add_middleware(LoggingMiddleware)
+    # noinspection PyTypeChecker
     app.add_middleware(CorrelationMiddleware)
 
-    for exc_cls, handler in collect_exception_handlers().items():
-        app.add_exception_handler(exc_cls, handler)  # type: ignore[arg-type]
+    # exception handlers used to reduce to a single form of response
+    app.add_exception_handler(DomainError, domain_exception_handler)
 
-    app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
-    app.include_router(items_router, prefix="/api/v1/items", tags=["items"])
+    router = APIRouter(prefix="/api/v1")
+    router.include_router(auth_router)
+    router.include_router(items_router)
+    app.include_router(router)
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])
     async def health_check() -> HealthResponse:
