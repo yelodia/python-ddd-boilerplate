@@ -1,0 +1,95 @@
+from typing import TypeVar
+from infrastructure.database.repositories.items import SqlItemRepository
+from infrastructure.json_storage.repositories.items import JsonItemRepository
+from infrastructure.in_memory.repositories.items import InMemoryItemRepository
+
+from application.items.use_cases import ListAllItemsUseCase, GetItemUseCase, CreateItemUseCase
+from application.uow import UnitOfWork
+from config import settings
+# from core.items.repository import ItemRepository
+from infrastructure.database.base import SessionFactory
+from infrastructure.database.uow import sql_unit_of_work
+from infrastructure.json_storage.uow import json_unit_of_work
+from infrastructure.in_memory.uow import in_memory_unit_of_work
+
+
+def _uow() -> UnitOfWork:
+    if settings.storage_backend == 'sql':
+        return sql_unit_of_work(SessionFactory)
+
+    if settings.storage_backend == 'json':
+        return json_unit_of_work(settings.json_data_dir)
+
+    if settings.storage_backend == 'ram':
+        return in_memory_unit_of_work()
+
+    raise ValueError(f"Unsupported storage backend: {settings.storage_backend}")
+
+
+S = TypeVar('S')
+
+SQL = 'sql'
+JSON = 'json'
+RAM = 'ram'
+
+_registry: dict[str, dict[type, type]] = {
+    'sql': {},
+    'json': {},
+    'ram': {},
+}
+
+
+class Registration:
+    def __init__(self):
+        from infrastructure.database.repositories.items import SqlItemRepository
+        from infrastructure.json_storage.repositories.items import JsonItemRepository
+        from infrastructure.in_memory.repositories.items import InMemoryItemRepository
+
+    @classmethod
+    def register_repo(cls, backend: str, contract: type, implementation: type) -> None:
+        from pprint import pp
+        _registry[backend][contract] = implementation
+        pp(_registry, indent=4)
+
+
+def register_repo(backend: str, contract: type, implementation: type):
+    from pprint import pp
+    _registry[backend][contract] = implementation
+    pp(_registry, indent=4)
+
+
+def get_repo(contract: type[S]) -> S:
+    from pprint import pp
+    implementation_class = _registry[settings.storage_backend].get(contract)
+    pp(_registry, indent=4)
+    return implementation_class(_uow())
+
+
+class UnknownStorageError(Exception):
+    pass
+
+
+# ------------------- Repositories initialization -------------------
+def item_repo():
+    if settings.storage_backend == 'sql':
+        return SqlItemRepository(SessionFactory)
+    if settings.storage_backend == 'json':
+        return JsonItemRepository(settings.json_data_dir)
+    if settings.storage_backend == 'ram':
+        return InMemoryItemRepository()
+
+    raise UnknownStorageError(f"Unsupported storage backend: {settings.storage_backend}")
+
+
+# ------------------- Use Cases initialization -------------------
+def list_all_items_use_case() -> ListAllItemsUseCase:
+    # repo = get_repo(ItemRepository)
+    return ListAllItemsUseCase(item_repo())
+
+
+def get_item_use_case() -> GetItemUseCase:
+    return GetItemUseCase(item_repo())
+
+
+def create_item_use_case() -> CreateItemUseCase:
+    return CreateItemUseCase(item_repo(), _uow())

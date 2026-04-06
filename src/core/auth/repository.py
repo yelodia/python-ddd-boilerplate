@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from src.core.auth.entities import UserData
 
 
-class AbstractUserRepository(ABC):
+class UserRepository(ABC):
     @abstractmethod
     async def get_by_id(self, user_id: int) -> UserData | None: ...
 

@@ -1,21 +1,17 @@
-from typing import Type
+from uuid import UUID
 
 import structlog
 
+from application.uow import UnitOfWork
 from common.use_case_base import UseCase
+from core.items.entities import Item
 from core.items.repository import ItemRepository
-from infrastructure.database.repositories.items import user_repository_factory
-from infrastructure.database.uow import UnitOfWork, unit_of_work
-from src.core.items.entities import Item
-from src.core.items.service import ItemService
+from core.items.service import ItemService
 
 logger = structlog.get_logger(__name__)
 
 
 class ItemUseCases:
-    _repo = UserRepo(sdbfsjkdhflk)
-
-
     def __init__(self, service: ItemService) -> None:
         self.service = service
 
@@ -42,17 +38,33 @@ class ItemUseCases:
         logger.info("item_deleted", item_id=item_id)
 
 
+class ListAllItemsUseCase(UseCase):
+    def __init__(self, repo):
+        self._repo: ItemRepository = repo
+
+    async def execute(self, offset: int, limit: int) -> list[Item]:
+        return await self._repo.get_all(offset, limit)
+
+
+class GetItemUseCase(UseCase):
+    def __init__(self, repo):
+        self._repo: ItemRepository = repo
+
+    async def execute(self, item_id: UUID) -> Item:
+        return await self._repo.get_by_id(item_id)
+
+
 class CreateItemUseCase(UseCase):
-    def __init__(self, repo_factory, session):
-        self._repo_factory = repo_factory
-        self._session = session
+    def __init__(self, repo: ItemRepository, uow: UnitOfWork):
+        self._repo: ItemRepository = repo
+        self._uow: UnitOfWork = uow
 
     async def execute(self, title: str, description: str | None = None) -> Item:
-        async with unit_of_work(self._session) as uow:
-            repo = self._repo_factory(uow.session)
-            new_item = await repo.create(title=title, description=description)
+        new_item = Item(title=title, description=description)
 
-            return new_item
+        async with self._uow as uow:
+            await self._repo.create(new_item)
+            await uow.commit()
 
+        return new_item
 
-create_item_use_case = CreateItemUseCase(item_repository_factory, get_uow)

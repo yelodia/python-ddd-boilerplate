@@ -1,10 +1,10 @@
 from src.core.auth.entities import UserData
 from src.core.auth.exceptions import UserNotFoundError
-from src.core.auth.repository import AbstractUserRepository
+from src.core.auth.repository import UserRepository
 
 
 class AuthService:
-    def __init__(self, repo: AbstractUserRepository) -> None:
+    def __init__(self, repo: UserRepository) -> None:
         self.repo = repo
 
     async def get_user(self, user_id: int) -> UserData:

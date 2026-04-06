@@ -3,12 +3,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, APIRouter
 
-from common.exceptions import DomainError
 from api.rest.auth.views import router as auth_router
 from api.rest.exception_handlers import domain_exception_handler
 from api.rest.items.views import router as items_router
+from common.exceptions import DomainError
 from common.schemas import HealthResponse
 from config import get_settings
+from infrastructure.bootstrap import Registration
 from middleware.correlation import CorrelationMiddleware
 from middleware.logging import LoggingMiddleware
 from observability.logging import setup_logging
@@ -22,14 +23,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     settings = get_settings()
     if settings.use_json_storage:
-        from src.infrastructure.file_storage.setup import ensure_json_storage
+        from src.infrastructure.json_storage.setup import ensure_json_storage
 
         ensure_json_storage(settings.json_data_dir)
 
     yield
 
 
-async def create_app() -> FastAPI:
+def create_app() -> FastAPI:
+    Registration()
     settings = get_settings()
 
     app = FastAPI(

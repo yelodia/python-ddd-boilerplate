@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     app_debug: bool = False
     app_secret_key: str = "dev-secret-key"
 
-    # Storage backend: "json" | "sql"
-    storage_backend: str = "json"
+    # Storage backend: "json" | "sql" | "ram"
+    storage_backend: str = "ram"  # TODO было json, вернуть обратно после тестов
 
     # JSON storage (Phase 1)
     json_data_dir: str = "data"
@@ -48,7 +48,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
 
 
 @lru_cache

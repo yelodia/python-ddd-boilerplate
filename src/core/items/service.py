@@ -1,10 +1,10 @@
 from src.core.items.entities import Item
 from src.core.items.exceptions import ItemNotFoundError
-from src.core.items.repository import AbstractItemRepository
+from src.core.items.repository import ItemRepository
 
 
 class ItemService:
-    def __init__(self, repo: AbstractItemRepository) -> None:
+    def __init__(self, repo: ItemRepository) -> None:
         self.repo = repo
 
     async def get_item(self, item_id: int) -> Item:

@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from src.core.auth.entities import UserData
-from src.core.auth.repository import AbstractUserRepository
+from core.auth.entities import UserData
+from core.auth.repository import UserRepository
 
 
-class InMemoryUserRepository(AbstractUserRepository):
+class InMemoryUserRepository(UserRepository):
     def __init__(self) -> None:
         self._users: dict[int, UserData] = {}
         self._next_id = 1
@@ -25,3 +25,7 @@ class InMemoryUserRepository(AbstractUserRepository):
         self._users[user.id] = user
         self._next_id += 1
         return user
+
+
+def in_memory_user_repository_factory() -> InMemoryUserRepository:
+    return InMemoryUserRepository()

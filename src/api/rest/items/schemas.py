@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -18,7 +19,7 @@ class ItemUpdate(BaseModel):
 
 
 class ItemResponse(BaseModel):
-    id: int
+    id: UUID
     title: str
     description: str | None
     is_active: bool
