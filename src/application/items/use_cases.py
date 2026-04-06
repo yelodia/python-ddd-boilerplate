@@ -5,6 +5,7 @@ import structlog
 from application.uow import UnitOfWork
 from common.use_case_base import UseCase
 from core.items.entities import Item
+from core.items.exceptions import ItemNotFoundError
 from core.items.repository import ItemRepository
 from core.items.service import ItemService
 
@@ -51,7 +52,10 @@ class GetItemUseCase(UseCase):
         self._repo: ItemRepository = repo
 
     async def execute(self, item_id: UUID) -> Item:
-        return await self._repo.get_by_id(item_id)
+        item = await self._repo.get_by_id(item_id)
+        if not item:
+            raise ItemNotFoundError(f"Item with id {item_id} not found")
+        return item
 
 
 class CreateItemUseCase(UseCase):

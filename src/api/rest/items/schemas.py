@@ -31,6 +31,6 @@ class ItemResponse(BaseModel):
             id=item.id,
             title=item.title,
             description=item.description,
-            is_active=item.is_active,
+            is_active=bool(item.is_active),
             created_at=item.created_at,
         )

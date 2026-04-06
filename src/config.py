@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     app_secret_key: str = "dev-secret-key"
 
     # Storage backend: "json" | "sql" | "ram"
-    storage_backend: str = "ram"  # TODO было json, вернуть обратно после тестов
+    storage_backend: str = "json"  # TODO было json, вернуть обратно после тестов
 
     # JSON storage (Phase 1)
     json_data_dir: str = "data"
