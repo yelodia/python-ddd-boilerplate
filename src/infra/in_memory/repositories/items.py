@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from core.items.exceptions import ItemAlreadyExistsError, ItemNotFoundError
-# from infrastructure.bootstrap import register_repo, RAM, Registration
+# from infra.bootstrap import register_repo, RAM, Registration
 from src.core.items.entities import Item
 from src.core.items.repository import ItemRepository
 

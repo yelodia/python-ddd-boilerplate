@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from api.dependencies import ItemUseCasesDep, UowDep, WsManagerDep
 from api.rest.items.schemas import ItemCreate, ItemResponse, ItemUpdate
-from infrastructure.bootstrap import (
+from infra.bootstrap import (
     list_all_items_use_case,
     create_item_use_case,
     get_item_use_case,

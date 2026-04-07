@@ -10,8 +10,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
 def setup_tracing(app: FastAPI | None = None) -> None:
-    from src.config import get_settings
-    from src.infrastructure.database.base import engine
+    from config import get_settings
+    from infra.database.base import engine
 
     settings = get_settings()
     if not settings.otel_enabled:

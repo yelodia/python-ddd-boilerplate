@@ -1,8 +1,8 @@
 import pytest
 
-from src.core.items.exceptions import ItemNotFoundError
-from src.core.items.service import ItemService
-from src.infrastructure.in_memory.repositories.items import InMemoryItemRepository
+from core.items.exceptions import ItemNotFoundError
+from core.items.service import ItemService
+from infra.in_memory.repositories.items import InMemoryItemRepository
 
 
 @pytest.fixture

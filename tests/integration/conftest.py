@@ -5,9 +5,9 @@ from collections.abc import AsyncIterator
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from src.config import get_settings
-from src.infrastructure.file_storage.setup import ensure_json_storage
-from src.main import create_app
+from config import get_settings
+from infra.json_storage.setup import ensure_json_storage
+from main import create_app
 
 
 @pytest.fixture

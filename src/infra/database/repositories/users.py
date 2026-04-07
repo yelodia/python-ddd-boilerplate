@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.auth.entities import UserData
 from core.auth.repository import UserRepository
-from infrastructure.database.orm_models.users import User
+from infra.database.orm_models.users import User
 
 
 class SqlUserRepository(UserRepository):

@@ -4,16 +4,16 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.application.auth.use_cases import AuthUseCases
-from src.application.items.use_cases import ItemUseCases
-from src.config import Settings, get_settings
-from src.core.auth.repository import UserRepository
-from src.core.auth.service import AuthService
-from src.core.items.repository import ItemRepository
-from src.core.items.service import ItemService
-from src.infrastructure.database.base import get_session
-from src.infrastructure.database.uow import UnitOfWork
-from src.infrastructure.ws_manager import ConnectionManager, manager
+from application.auth.use_cases import AuthUseCases
+from application.items.use_cases import ItemUseCases
+from config import Settings, get_settings
+from core.auth.repository import UserRepository
+from core.auth.service import AuthService
+from core.items.repository import ItemRepository
+from core.items.service import ItemService
+from infra.database.base import get_session
+from infra.database.uow import UnitOfWork
+from infra.ws_manager import ConnectionManager, manager
 
 
 async def get_uow(
@@ -30,7 +30,7 @@ async def get_uow(
         yield None
         return
 
-    uow = UnitOfWork(session)
+    uow = UnitOfWork(session)  # FIXME попытка засунуть в интерфейс сессию БД, какая-то путаница после рефакторингов
     try:
         yield uow
         await uow.commit()
@@ -47,10 +47,10 @@ def get_item_repository(
     session: AsyncSession | None = Depends(get_session),
 ) -> ItemRepository:
     if settings.use_json_storage:
-        from infrastructure.file_storage.repositories.items import JsonItemRepository
+        from infra.json_storage.repositories.items import JsonItemRepository
 
         return JsonItemRepository(data_dir=settings.json_data_dir)
-    from src.infrastructure.database.repositories.items import SqlItemRepository
+    from infra.database.repositories.items import SqlItemRepository
 
     assert session is not None
     return SqlItemRepository(session)
@@ -73,10 +73,10 @@ def get_user_repository(
     session: AsyncSession | None = Depends(get_session),
 ) -> UserRepository:
     if settings.use_json_storage:
-        from infrastructure.file_storage.repositories.users import JsonUserRepository
+        from infra.json_storage.repositories.users import JsonUserRepository
 
         return JsonUserRepository(data_dir=settings.json_data_dir)
-    from src.infrastructure.database.repositories.auth import SqlUserRepository
+    from infra.database.repositories.users import SqlUserRepository
 
     assert session is not None
     return SqlUserRepository(session)

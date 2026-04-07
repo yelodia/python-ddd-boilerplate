@@ -6,7 +6,7 @@ from uuid import UUID
 import aiofiles
 
 from core.items.exceptions import ItemNotFoundError
-# from infrastructure.bootstrap import register_repo, JSON, Registration
+# from infra.bootstrap import register_repo, JSON, Registration
 from src.core.items.entities import Item
 from src.core.items.repository import ItemRepository
 from dataclasses import asdict
