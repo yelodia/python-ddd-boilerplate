@@ -4,9 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 
 from api.rest.auth.views import router as auth_router
-from api.rest.exception_handlers import domain_exception_handler
+from api.rest.root_error_handlers import bind_handlers_to
 from api.rest.items.views import router as items_router
-from common.exceptions import DomainError
 from common.schemas import HealthResponse
 from config import get_settings
 from infra.bootstrap import Registration
@@ -48,8 +47,7 @@ def create_app() -> FastAPI:
     # noinspection PyTypeChecker
     app.add_middleware(CorrelationMiddleware)
 
-    # exception handlers used to reduce to a single form of response
-    app.add_exception_handler(DomainError, domain_exception_handler)
+    bind_handlers_to(app)
 
     router = APIRouter(prefix="/api/v1")
     router.include_router(auth_router)

@@ -1,19 +1,51 @@
-from src.core.items.exceptions import ItemAlreadyExistsError, ItemNotFoundError
+from starlette.status import HTTP_418_IM_A_TEAPOT
 
-http_codes = {
-    ItemNotFoundError: 404,
-    ItemAlreadyExistsError: 409,
-}  # TODO придумать, как организовать маппинг доменных ошибок к HTTP-кодам
-# TODO как пробросить эту "карту" на уровень выше, в общедоменный api/rest/exception_handlers.py
+from core.items.exceptions import IAmTeapotError
+
+"""NOTE: Please, each error should uses only in one of mechanics, but not both at time!"""
+
+specific_status_codes = {
+    IAmTeapotError: HTTP_418_IM_A_TEAPOT,
+}; """The map for any errors which should be responded with specific HTTP status code."""
 
 
-def get_exception_handlers(request, exc):  # другой пример "мапинга" бизнесовых ошибок оп HTTP-кодам
-    status_code = 400
+custom_error_handlers = {}
+"""
+The declaration a custom handlers for exceptions of current domain.
 
-    if isinstance(exc, UserNotFoundError):
-        status_code = 404
+Format: {
+            ExceptionType: handler_function,
+            AnotherExceptionType: another_handler_function,
+            ...
+        }
 
-    if isinstance(exc, RateLimitError):
-        status_code = 429
+For example:
+    we want a response not only with specific status code, bun also with some 
+    custom content, which is not just "detail" field with error message.
+    For implements it we should create custom handler function, which will be used
+    only for this exception, and register it via ERROR_HANDLERS list.
 
-    return JSONResponse(status_code=status_code, content={"detail": str(exc)})
+Code example:
+        from starlette.responses import JSONResponse
+
+        DOMAIN_SPECIFIC_STATUS_CODES = {}
+
+
+        def custom_handler(request, exc) -> JSONResponse:
+            return JSONResponse(
+                status_code=HTTP_418_IM_A_TEAPOT,
+                content=dict(
+                    detail=str(exc),
+                    timestamp=datetime.now()
+                )
+            )
+
+        ERROR_HANDLERS = {
+            IAmTeapotError: custom_handler,
+            IAnNotATeapotError: custom_handler,
+        }
+
+    Then only for two these exceptions will be used custom_handler(), and for all another exceptions,
+    which are not listed in `custom_error_handlers`, but are subclass of DomainError - still be processed
+    by default `domain_errors_handler()` handler from `api.rest.error_handlers` module.
+"""

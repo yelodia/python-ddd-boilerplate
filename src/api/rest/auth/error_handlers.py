@@ -1,5 +1,4 @@
-from fastapi import Request
-from fastapi.responses import JSONResponse
+from starlette import status
 
 from src.core.auth.exceptions import (
     InvalidCredentialsError,
@@ -8,20 +7,13 @@ from src.core.auth.exceptions import (
 )
 
 
-async def user_not_found_handler(request: Request, exc: UserNotFoundError) -> JSONResponse:
-    return JSONResponse(status_code=404, content={"detail": str(exc)})
+specific_status_codes = {
+    # DomainErrorType: HTTP_STATUS_CODE,
+    UserNotFoundError: status.HTTP_404_NOT_FOUND,
+    UserAlreadyExistsError: status.HTTP_409_CONFLICT,
+    InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
+}
 
-
-async def user_already_exists_handler(request: Request, exc: UserAlreadyExistsError) -> JSONResponse:
-    return JSONResponse(status_code=409, content={"detail": str(exc)})
-
-
-async def invalid_credentials_handler(request: Request, exc: InvalidCredentialsError) -> JSONResponse:
-    return JSONResponse(status_code=401, content={"detail": str(exc)})
-
-
-exception_handlers = {
-    UserNotFoundError: user_not_found_handler,
-    UserAlreadyExistsError: user_already_exists_handler,
-    InvalidCredentialsError: invalid_credentials_handler,
+custom_error_handlers = {
+    # DomainErrorType: handler_function,
 }
