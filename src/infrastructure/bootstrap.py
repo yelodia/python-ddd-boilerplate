@@ -1,16 +1,15 @@
 from typing import TypeVar
-from infrastructure.database.repositories.items import SqlItemRepository
-from infrastructure.json_storage.repositories.items import JsonItemRepository
-from infrastructure.in_memory.repositories.items import InMemoryItemRepository
 
-from application.items.use_cases import ListAllItemsUseCase, GetItemUseCase, CreateItemUseCase
+from application.items.use_cases import ListAllItemsUseCase, GetItemUseCase, CreateItemUseCase, UpdateItemUseCase
 from application.uow import UnitOfWork
 from config import settings
-# from core.items.repository import ItemRepository
 from infrastructure.database.base import SessionFactory
+from infrastructure.database.repositories.items import SqlItemRepository
 from infrastructure.database.uow import sql_unit_of_work
-from infrastructure.json_storage.uow import json_unit_of_work
+from infrastructure.in_memory.repositories.items import InMemoryItemRepository
 from infrastructure.in_memory.uow import in_memory_unit_of_work
+from infrastructure.json_storage.repositories.items import JsonItemRepository
+from infrastructure.json_storage.uow import json_unit_of_work
 
 
 def _uow() -> UnitOfWork:
@@ -40,10 +39,10 @@ _registry: dict[str, dict[type, type]] = {
 
 
 class Registration:
-    def __init__(self):
-        from infrastructure.database.repositories.items import SqlItemRepository
-        from infrastructure.json_storage.repositories.items import JsonItemRepository
-        from infrastructure.in_memory.repositories.items import InMemoryItemRepository
+    # def __init__(self):
+    #     from infrastructure.database.repositories.items import SqlItemRepository
+    #     from infrastructure.json_storage.repositories.items import JsonItemRepository
+    #     from infrastructure.in_memory.repositories.items import InMemoryItemRepository
 
     @classmethod
     def register_repo(cls, backend: str, contract: type, implementation: type) -> None:
@@ -93,3 +92,7 @@ def get_item_use_case() -> GetItemUseCase:
 
 def create_item_use_case() -> CreateItemUseCase:
     return CreateItemUseCase(item_repo(), _uow())
+
+
+def update_item_use_case() -> UpdateItemUseCase:
+    return UpdateItemUseCase(item_repo(), _uow())

@@ -53,8 +53,6 @@ class GetItemUseCase(UseCase):
 
     async def execute(self, item_id: UUID) -> Item:
         item = await self._repo.get_by_id(item_id)
-        if not item:
-            raise ItemNotFoundError(f"Item with id {item_id} not found")
         return item
 
 
@@ -66,9 +64,24 @@ class CreateItemUseCase(UseCase):
     async def execute(self, title: str, description: str | None = None) -> Item:
         new_item = Item(title=title, description=description)
 
-        async with self._uow as uow:
+        async with self._uow:
             await self._repo.create(new_item)
-            await uow.commit()
 
         return new_item
 
+
+class UpdateItemUseCase(UseCase):
+    def __init__(self, repo: ItemRepository, uow: UnitOfWork):
+        self._repo: ItemRepository = repo
+        self._uow: UnitOfWork = uow
+
+    async def execute(self, item_id: UUID, title: str | None = None, description: str | None = None) -> Item:
+        async with self._uow:
+            item = await self._repo.get_by_id(item_id)
+
+            item.update_title(title)
+            # TODO добавить обновление description в entity и usecase!
+
+            await self._repo.update(item)
+
+        return item

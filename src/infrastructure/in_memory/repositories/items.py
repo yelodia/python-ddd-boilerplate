@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from core.items.exceptions import ItemAlreadyExistsError
+from core.items.exceptions import ItemAlreadyExistsError, ItemNotFoundError
 # from infrastructure.bootstrap import register_repo, RAM, Registration
 from src.core.items.entities import Item
 from src.core.items.repository import ItemRepository
@@ -10,8 +10,12 @@ class InMemoryItemRepository(ItemRepository):
     def __init__(self) -> None:
         self._items: dict[UUID, Item] = {}
 
-    async def get_by_id(self, id: UUID) -> Item | None:
-        return self._items.get(id)
+    async def get_by_id(self, item_id: UUID) -> Item:
+        item = self._items.get(item_id)
+        if not item:
+            raise ItemNotFoundError(f"Item with ID {item_id} not found")
+        return item
+
 
     async def get_all(self, offset: int = 0, limit: int = 20) -> list[Item]:
         items = sorted(self._items.values(), key=lambda i: i.id)

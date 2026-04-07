@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from pydantic import BaseModel
 
 from api.dependencies import ItemUseCasesDep, UowDep, WsManagerDep
 from api.rest.items.schemas import ItemCreate, ItemResponse, ItemUpdate
@@ -8,13 +9,18 @@ from infrastructure.bootstrap import (
     list_all_items_use_case,
     create_item_use_case,
     get_item_use_case,
+    update_item_use_case,
 )
 
 router = APIRouter(prefix="/items", tags=["items"])
 
 
+class ListItemsParams(BaseModel):
+    offset: int = 0
+    limit: int = 20
+
 @router.get("/", response_model=list[ItemResponse])
-async def list_items(offset: int = 0, limit: int = 20,) -> list[ItemResponse]:
+async def list_items(offset: int = 0, limit: int = 20) -> list[ItemResponse]:
     items = await list_all_items_use_case().execute(offset=offset, limit=limit)
     return [ItemResponse.from_domain(i) for i in items]
 
@@ -33,8 +39,7 @@ async def create_item(body: ItemCreate) -> ItemResponse:
 
 @router.patch("/{item_id}", response_model=ItemResponse)
 async def update_item(item_id: UUID, body: ItemUpdate) -> ItemResponse:
-
-    item = await use_cases.update_item(
+    item = await update_item_use_case().execute(
         item_id,
         title=body.title,
         description=body.description,
