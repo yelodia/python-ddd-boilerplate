@@ -6,7 +6,8 @@ from core.items.exceptions import IAmTeapotError
 
 specific_status_codes = {
     IAmTeapotError: HTTP_418_IM_A_TEAPOT,
-}; """The map for any errors which should be responded with specific HTTP status code."""
+}
+"""The map for any errors which should be responded with specific HTTP status code."""
 
 
 custom_error_handlers = {}
@@ -28,7 +29,7 @@ For example:
 Code example:
         from starlette.responses import JSONResponse
 
-        DOMAIN_SPECIFIC_STATUS_CODES = {}
+        specific_status_codes = {}
 
 
         def custom_handler(request, exc) -> JSONResponse:
@@ -36,11 +37,11 @@ Code example:
                 status_code=HTTP_418_IM_A_TEAPOT,
                 content=dict(
                     detail=str(exc),
-                    timestamp=datetime.now()
+                    timestamp=datetime.now(),
                 )
             )
 
-        ERROR_HANDLERS = {
+        custom_error_handlers = {
             IAmTeapotError: custom_handler,
             IAnNotATeapotError: custom_handler,
         }

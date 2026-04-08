@@ -26,7 +26,7 @@ class ItemService:
         if not item:
             raise ItemNotFoundError(f"Item {item_id} not found")
         if title is not None:
-            item = item.update_title(title)
+            item = item.rename(title)
         if description is not ...:
             item = Item(
                 id=item.id,

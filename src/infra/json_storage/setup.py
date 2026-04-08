@@ -1,6 +1,6 @@
 from pathlib import Path
 
-_JSON_FILES = ["items.json", "users.json"]
+_JSON_FILES = ["items.json", "users.json"]  # FIXME хардкод!
 
 
 def ensure_json_storage(data_dir: str) -> None:

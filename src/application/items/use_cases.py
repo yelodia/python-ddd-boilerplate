@@ -2,57 +2,35 @@ from uuid import UUID
 
 import structlog
 
+from application.items.commands import (
+    ShowAllItemsCmd,
+    CreateItemCmd,
+    GetItemCmd,
+    UpdateItemCmd,
+    DeleteItemCmd,
+)
 from application.uow import UnitOfWork
 from common.use_case_base import UseCase
 from core.items.entities import Item
-from core.items.exceptions import ItemNotFoundError
 from core.items.repository import ItemRepository
-from core.items.service import ItemService
 
 logger = structlog.get_logger(__name__)
 
 
-class ItemUseCases:
-    def __init__(self, service: ItemService) -> None:
-        self.service = service
-
-    async def get_item(self, item_id: int) -> Item:
-        return await self.service.get_item(item_id)
-
-    async def list_items(self, offset: int, limit: int) -> list[Item]:
-        return await self.service.list_items(offset, limit)
-
-    async def create_item(self, title: str, description: str | None = None) -> Item:
-        item = await self.service.create_item(title=title, description=description)
-        logger.info("item_created", item_id=item.id, title=item.title)
-        return item
-
-    async def update_item(
-        self, item_id: int, title: str | None = None, description: str | None = ...
-    ) -> Item:
-        item = await self.service.update_item(item_id, title=title, description=description)
-        logger.info("item_updated", item_id=item.id)
-        return item
-
-    async def delete_item(self, item_id: int) -> None:
-        await self.service.delete_item(item_id)
-        logger.info("item_deleted", item_id=item_id)
-
-
-class ListAllItemsUseCase(UseCase):
+class ShowAllItemsUseCase(UseCase):
     def __init__(self, repo):
         self._repo: ItemRepository = repo
 
-    async def execute(self, offset: int, limit: int) -> list[Item]:
-        return await self._repo.get_all(offset, limit)
+    async def execute(self, cmd: ShowAllItemsCmd) -> list[Item]:
+        return await self._repo.get_all(cmd.offset, cmd.limit)
 
 
 class GetItemUseCase(UseCase):
     def __init__(self, repo):
         self._repo: ItemRepository = repo
 
-    async def execute(self, item_id: UUID) -> Item:
-        item = await self._repo.get_by_id(item_id)
+    async def execute(self, cmd: GetItemCmd) -> Item:
+        item = await self._repo.get_by_id(cmd.item_id)
         return item
 
 
@@ -61,8 +39,8 @@ class CreateItemUseCase(UseCase):
         self._repo: ItemRepository = repo
         self._uow: UnitOfWork = uow
 
-    async def execute(self, title: str, description: str | None = None) -> Item:
-        new_item = Item(title=title, description=description)
+    async def execute(self, cmd: CreateItemCmd) -> Item:
+        new_item = Item(title=cmd.title, description=cmd.description)
 
         async with self._uow:
             await self._repo.create(new_item)
@@ -75,13 +53,23 @@ class UpdateItemUseCase(UseCase):
         self._repo: ItemRepository = repo
         self._uow: UnitOfWork = uow
 
-    async def execute(self, item_id: UUID, title: str | None = None, description: str | None = None) -> Item:
+    async def execute(self, cmd: UpdateItemCmd) -> Item:
         async with self._uow:
-            item = await self._repo.get_by_id(item_id)
+            item = await self._repo.get_by_id(cmd.item_id)
 
-            item.update_title(title)
-            # TODO добавить обновление description в entity и usecase!
+            item.rename(cmd.title)
+            item.set_description(cmd.description)
 
             await self._repo.update(item)
 
         return item
+
+
+class DeleteItemUseCase(UseCase):
+    def __init__(self, repo: ItemRepository, uow: UnitOfWork):
+        self._repo: ItemRepository = repo
+        self._uow: UnitOfWork = uow
+
+    async def execute(self, cmd: DeleteItemCmd) -> None:
+        async with self._uow:
+            await self._repo.delete(cmd.item_id)

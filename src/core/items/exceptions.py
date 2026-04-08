@@ -20,11 +20,11 @@ class ItemAlreadyExistsError(DomainError):  # TODO: raise in create when unique 
     pass
 
 
-class CannotEmptyTitleError(DomainError):
+class TitleCannotBeEmptyError(DomainError):
     pass
 
 
-class TooLongTitleError(DomainError):
+class TitleTooLongError(DomainError):
     pass
 
 

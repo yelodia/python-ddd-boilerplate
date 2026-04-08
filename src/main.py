@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     settings = get_settings()
     if settings.use_json_storage:
-        from infra.json_storage.setup import ensure_json_storage
+        from infra.json_storage.setup import ensure_json_storage  # FIXME импорт посреди runtime -_-
 
         ensure_json_storage(settings.json_data_dir)
 
@@ -42,9 +42,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # noinspection PyTypeChecker
     app.add_middleware(LoggingMiddleware)
-    # noinspection PyTypeChecker
     app.add_middleware(CorrelationMiddleware)
 
     bind_handlers_to(app)
@@ -61,4 +59,4 @@ def create_app() -> FastAPI:
     return app
 
 
-app = create_app()
+application = create_app()

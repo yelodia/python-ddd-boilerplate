@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from core.items.exceptions import CannotEmptyTitleError, TooLongTitleError
+from core.items.exceptions import TitleCannotBeEmptyError, TitleTooLongError
 
 
 @dataclass(kw_only=True)
@@ -19,13 +19,16 @@ class Item:
     def activate(self) -> None:  # TODO: wire to PATCH endpoint
         self.is_active = True
 
-    def update_title(self, new_title: str) -> None:
+    def rename(self, new_title: str) -> None:
         new_title = new_title.strip()
 
         if not new_title:
-            raise CannotEmptyTitleError("Title cannot be empty")
+            raise TitleCannotBeEmptyError("Title cannot be empty")
 
         if len(new_title) > 255:
-            raise TooLongTitleError(f"Title must be 1-255 chars, got {len(new_title)}")
+            raise TitleTooLongError(f"Title must be 1-255 chars, got {len(new_title)}")
 
         self.title = new_title
+
+    def set_description(self, new_description: str | None) -> None:
+        self.description = new_description

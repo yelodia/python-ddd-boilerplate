@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi import status
+from fastapi.exceptions import ValidationException
 from starlette.responses import JSONResponse
 
 from api.rest.auth.error_handlers import (
@@ -40,6 +41,18 @@ async def default_domain_errors_handler(request, exc) -> JSONResponse:
         }
     )
 
+async def views_validation_error_handler(request, exc) -> JSONResponse:
+    """
+    This handler is for validation errors, which can be raised in views, for example, when request body is invalid.
+
+    We can also add some more specific handlers for validation errors in different views, if we want to return different status codes or error messages.
+    """
+    return JSONResponse(
+        status_code=_DEFAULT_STATUS_CODE,
+        content={
+            "detail": str(exc),  # TODO сделать извлечение полнотекстового сообщения об ошибке
+        }
+    )
 
 async def general_exception_handler(request, exc: Exception) -> JSONResponse:
     return JSONResponse(
@@ -65,4 +78,5 @@ def bind_handlers_to(app: FastAPI) -> None:
         app.add_exception_handler(ext_type, default_domain_errors_handler)
 
     # also we can add some more general handlers for all another standard exceptions, for example:
+    app.add_exception_handler(ValidationException, views_validation_error_handler)
     app.add_exception_handler(Exception, general_exception_handler)

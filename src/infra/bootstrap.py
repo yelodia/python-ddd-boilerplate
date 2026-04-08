@@ -1,6 +1,12 @@
 from typing import TypeVar
 
-from application.items.use_cases import ListAllItemsUseCase, GetItemUseCase, CreateItemUseCase, UpdateItemUseCase
+from application.items.use_cases import (
+    ShowAllItemsUseCase,
+    GetItemUseCase,
+    CreateItemUseCase,
+    UpdateItemUseCase,
+    DeleteItemUseCase,
+)
 from application.uow import UnitOfWork
 from config import settings
 from infra.database.base import SessionFactory
@@ -81,9 +87,9 @@ def item_repo():
 
 
 # ------------------- Use Cases initialization -------------------
-def list_all_items_use_case() -> ListAllItemsUseCase:
+def show_all_items_use_case() -> ShowAllItemsUseCase:
     # repo = get_repo(ItemRepository)
-    return ListAllItemsUseCase(item_repo())
+    return ShowAllItemsUseCase(item_repo())
 
 
 def get_item_use_case() -> GetItemUseCase:
@@ -96,3 +102,7 @@ def create_item_use_case() -> CreateItemUseCase:
 
 def update_item_use_case() -> UpdateItemUseCase:
     return UpdateItemUseCase(item_repo(), _uow())
+
+
+def delete_item_use_case() -> DeleteItemUseCase:
+    return DeleteItemUseCase(item_repo(), _uow())
