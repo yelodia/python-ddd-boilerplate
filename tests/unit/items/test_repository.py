@@ -3,8 +3,8 @@
 import pytest
 
 from core.items.repository import ItemRepository
-from infra.json_storage.repositories.items import JsonItemRepository
-from infra.in_memory.repositories.items import InMemoryItemRepository
+from infra.json_storage.repositories.item import JsonItemRepository
+from infra.in_memory.repositories.item import InMemoryItemRepository
 
 
 @pytest.fixture(params=["in_memory", "json"])

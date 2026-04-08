@@ -2,7 +2,7 @@ import pytest
 
 from core.items.exceptions import ItemNotFoundError
 from core.items.service import ItemService
-from infra.in_memory.repositories.items import InMemoryItemRepository
+from infra.in_memory.repositories.item import InMemoryItemRepository
 
 
 @pytest.fixture

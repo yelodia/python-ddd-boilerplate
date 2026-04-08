@@ -1,105 +1,15 @@
-from collections.abc import AsyncGenerator
-from typing import Annotated
-
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.auth.use_cases import AuthUseCases
-from application.items.use_cases import ItemUseCases
-from config import Settings, get_settings
-from core.auth.repository import UserRepository
-from core.auth.service import AuthService
-from core.items.repository import ItemRepository
-from core.items.service import ItemService
-from infra.database.base import get_session
-from infra.database.uow import UnitOfWork
-from infra.ws_manager import ConnectionManager, manager
+from common.use_case_base import UseCase
+from infra.usecases_builder import UseCasesBuilder
 
 
-async def get_uow(
-    session: AsyncSession | None = Depends(get_session),
-) -> AsyncGenerator[UnitOfWork | None, None]:
-    """Request-scoped UoW for mutating operations only (INSERT/UPDATE/DELETE).
+def use_case_factory(use_case_class: type[UseCase]):
+    async def dependency(
+        builder: UseCasesBuilder = Depends(UseCasesBuilder),
+    ) -> UseCase:
+        return builder.get_use_case(use_case_class)
+    return dependency
 
-    Inject as ``_uow: UowDep`` in views that modify data.
-    FastAPI caches ``get_session`` per request, so the repo and UoW
-    share the same underlying session — commit covers all repo writes.
-    Read-only views should NOT depend on this.
-    """
-    if session is None:
-        yield None
-        return
-
-    uow = UnitOfWork(session)  # FIXME попытка засунуть в интерфейс сессию БД, какая-то путаница после рефакторингов
-    try:
-        yield uow
-        await uow.commit()
-    except Exception:
-        await uow.rollback()
-        raise
-
-
-UowDep = Annotated[UnitOfWork | None, Depends(get_uow)]
-
-
-def get_item_repository(
-    settings: Settings = Depends(get_settings),
-    session: AsyncSession | None = Depends(get_session),
-) -> ItemRepository:
-    if settings.use_json_storage:
-        from infra.json_storage.repositories.items import JsonItemRepository
-
-        return JsonItemRepository(data_dir=settings.json_data_dir)
-    from infra.database.repositories.items import SqlItemRepository
-
-    assert session is not None
-    return SqlItemRepository(session)
-
-
-def get_item_service(
-    repo: ItemRepository = Depends(get_item_repository),
-) -> ItemService:
-    return ItemService(repo)
-
-
-def get_item_use_cases(
-    service: ItemService = Depends(get_item_service),
-) -> ItemUseCases:
-    return ItemUseCases(service)
-
-
-def get_user_repository(
-    settings: Settings = Depends(get_settings),
-    session: AsyncSession | None = Depends(get_session),
-) -> UserRepository:
-    if settings.use_json_storage:
-        from infra.json_storage.repositories.users import JsonUserRepository
-
-        return JsonUserRepository(data_dir=settings.json_data_dir)
-    from infra.database.repositories.users import SqlUserRepository
-
-    assert session is not None
-    return SqlUserRepository(session)
-
-
-def get_auth_service(
-    repo: UserRepository = Depends(get_user_repository),
-) -> AuthService:
-    return AuthService(repo)
-
-
-def get_auth_use_cases(
-    service: AuthService = Depends(get_auth_service),
-) -> AuthUseCases:
-    return AuthUseCases(service)
-
-
-ItemUseCasesDep = Annotated[ItemUseCases, Depends(get_item_use_cases)]
-AuthUseCasesDep = Annotated[AuthUseCases, Depends(get_auth_use_cases)]
-
-
-def get_ws_manager() -> ConnectionManager:
-    return manager
-
-
-WsManagerDep = Annotated[ConnectionManager, Depends(get_ws_manager)]
+def build(use_case_class: type[UseCase]):
+    return Depends(use_case_factory(use_case_class))

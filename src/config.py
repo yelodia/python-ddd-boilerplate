@@ -4,6 +4,10 @@ from pydantic import PostgresDsn, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+SQL = 'sql'
+JSON = 'json'
+RAM = 'ram'
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -16,8 +20,8 @@ class Settings(BaseSettings):
     app_debug: bool = False
     app_secret_key: str = "dev-secret-key"
 
-    # Storage backend: "json" | "sql" | "ram"
-    storage_backend: str = "json"  # TODO было json, вернуть обратно после тестов
+    # Storage backend: SQL | JSON | RAM
+    storage_backend: str = JSON
 
     # JSON storage (Phase 1)
     json_data_dir: str = "data"

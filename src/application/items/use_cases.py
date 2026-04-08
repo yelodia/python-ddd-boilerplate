@@ -1,5 +1,3 @@
-from uuid import UUID
-
 import structlog
 
 from application.items.commands import (
@@ -9,8 +7,7 @@ from application.items.commands import (
     UpdateItemCmd,
     DeleteItemCmd,
 )
-from application.uow import UnitOfWork
-from common.use_case_base import UseCase
+from common.use_case_base import UseCase, UowFactory
 from core.items.entities import Item
 from core.items.repository import ItemRepository
 
@@ -18,7 +15,7 @@ logger = structlog.get_logger(__name__)
 
 
 class ShowAllItemsUseCase(UseCase):
-    def __init__(self, repo):
+    def __init__(self, repo: ItemRepository):
         self._repo: ItemRepository = repo
 
     async def execute(self, cmd: ShowAllItemsCmd) -> list[Item]:
@@ -26,7 +23,7 @@ class ShowAllItemsUseCase(UseCase):
 
 
 class GetItemUseCase(UseCase):
-    def __init__(self, repo):
+    def __init__(self, repo: ItemRepository):
         self._repo: ItemRepository = repo
 
     async def execute(self, cmd: GetItemCmd) -> Item:
@@ -35,29 +32,29 @@ class GetItemUseCase(UseCase):
 
 
 class CreateItemUseCase(UseCase):
-    def __init__(self, repo: ItemRepository, uow: UnitOfWork):
+    def __init__(self, repo: ItemRepository, uow: UowFactory):
         self._repo: ItemRepository = repo
-        self._uow: UnitOfWork = uow
+        self._uow: UowFactory = uow
 
     async def execute(self, cmd: CreateItemCmd) -> Item:
         new_item = Item(title=cmd.title, description=cmd.description)
 
-        async with self._uow:
+        async with self._uow():
             await self._repo.create(new_item)
 
         return new_item
 
 
 class UpdateItemUseCase(UseCase):
-    def __init__(self, repo: ItemRepository, uow: UnitOfWork):
+    def __init__(self, repo: ItemRepository, uow: UowFactory):
         self._repo: ItemRepository = repo
-        self._uow: UnitOfWork = uow
+        self._uow: UowFactory = uow
 
     async def execute(self, cmd: UpdateItemCmd) -> Item:
-        async with self._uow:
+        async with self._uow():
             item = await self._repo.get_by_id(cmd.item_id)
 
-            item.rename(cmd.title)
+            item.rename(cmd.title)  # FIXME in cmd at now can be None, but domain entity isn't allow the None value >:(
             item.set_description(cmd.description)
 
             await self._repo.update(item)
@@ -66,10 +63,10 @@ class UpdateItemUseCase(UseCase):
 
 
 class DeleteItemUseCase(UseCase):
-    def __init__(self, repo: ItemRepository, uow: UnitOfWork):
+    def __init__(self, repo: ItemRepository, uow: UowFactory):
         self._repo: ItemRepository = repo
-        self._uow: UnitOfWork = uow
+        self._uow: UowFactory = uow
 
     async def execute(self, cmd: DeleteItemCmd) -> None:
-        async with self._uow:
+        async with self._uow():
             await self._repo.delete(cmd.item_id)

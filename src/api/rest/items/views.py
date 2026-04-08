@@ -1,6 +1,10 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from uuid import UUID
 
-from api.dependencies import WsManagerDep
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from pydantic import BaseModel
+
+from api.dependencies import build
+from api.deprecated_dependencies import WsManagerDep
 from api.rest.items.responses import ItemResponse
 from application.items.commands import (
     CreateItemCmd,
@@ -9,44 +13,85 @@ from application.items.commands import (
     UpdateItemCmd,
     DeleteItemCmd,
 )
-from infra.bootstrap import (
-    show_all_items_use_case,
-    create_item_use_case,
-    get_item_use_case,
-    update_item_use_case,
-    delete_item_use_case,
+from application.items.use_cases import (
+    ShowAllItemsUseCase,
+    CreateItemUseCase,
+    GetItemUseCase,
+    UpdateItemUseCase,
+    DeleteItemUseCase,
 )
 
 router = APIRouter(prefix="/items", tags=["items"])
 
+"""
+TODO при добавлении новой сущности:
+1) создать сущность в core/*/entities.py
+2) создать новый репозиторий (интерфейс) в слое core/BOUNDED_CONTEXT/repository.py
+3) создать реализацию репозитория в слое infra/STORAGE_IMPL/repositories/*.py
+4) "зарегистрировать" реализации репозиториев в "билдере" infra/usecases_builder.py
+5) создать команды и юзкейсы в слое application
+6) создать вьюшки и накормить их свежесозданными юзкейсами
+"""
+
+
+@router.get("/ping", response_model=ItemResponse)
+async def ping(use_case: PingUseCase = build(PingUseCase)) -> ItemResponse:
+    item = await use_case.execute()
+    return ItemResponse.from_domain(item)
+
 
 @router.get("/", response_model=list[ItemResponse])
-async def list_items(cmd: ShowAllItemsCmd) -> list[ItemResponse]:
-    items = await show_all_items_use_case().execute(cmd)
+async def list_items(
+        offset: int = 0,
+        limit: int = 10,
+        use_case: ShowAllItemsUseCase = build(ShowAllItemsUseCase),
+) -> list[ItemResponse]:
+    cmd = ShowAllItemsCmd(offset=offset, limit=limit)
+    items = await use_case.execute(cmd)
     return [ItemResponse.from_domain(x) for x in items]
 
 
 @router.get("/{item_id}", response_model=ItemResponse)
-async def get_item(cmd: GetItemCmd) -> ItemResponse:
-    item = await get_item_use_case().execute(cmd)
+async def get_item(
+        item_id: UUID,
+        use_case: GetItemUseCase = build(GetItemUseCase),
+) -> ItemResponse:
+    cmd = GetItemCmd(item_id=item_id)
+    item = await use_case.execute(cmd)
     return ItemResponse.from_domain(item)
 
 
 @router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
-async def create_item(cmd: CreateItemCmd) -> ItemResponse:
-    item = await create_item_use_case().execute(cmd)
+async def create_item(
+        cmd: CreateItemCmd,
+        use_case: CreateItemUseCase = build(CreateItemUseCase),
+) -> ItemResponse:
+    item = await use_case.execute(cmd)
     return ItemResponse.from_domain(item)
 
 
-@router.patch("/{item_id}", response_model=ItemResponse)
-async def update_item(cmd: UpdateItemCmd) -> ItemResponse:
-    item = await update_item_use_case().execute(cmd)
+class UpdateItemRequestBody(BaseModel):
+    title: str
+    description: str | None = None
+
+@router.put("/{item_id}", response_model=ItemResponse)
+async def update_item(
+        item_id: UUID,
+        body: UpdateItemRequestBody,
+        use_case: UpdateItemUseCase = build(UpdateItemUseCase),
+) -> ItemResponse:
+    cmd = UpdateItemCmd(item_id=item_id, **body.dict())
+    item = await use_case.execute(cmd)
     return ItemResponse.from_domain(item)
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_item(cmd: DeleteItemCmd) -> None:
-    await delete_item_use_case().execute(cmd)
+async def delete_item(
+        item_id: UUID,
+        use_case: DeleteItemUseCase = build(DeleteItemUseCase),
+) -> None:
+    cmd = DeleteItemCmd(item_id=item_id)
+    await use_case.execute(cmd)
 
 
 @router.websocket("/ws")

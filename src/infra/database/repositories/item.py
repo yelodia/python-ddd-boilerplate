@@ -7,7 +7,6 @@ from core.items.entities import Item as ItemEntity
 from core.items.exceptions import ItemNotFoundError
 from core.items.repository import ItemRepository
 from infra.database.orm_models.items import Item as ItemORM
-# from infra.bootstrap import register_repo, SQL, Registration
 
 
 class SqlItemRepository(ItemRepository):
@@ -60,6 +59,3 @@ class SqlItemRepository(ItemRepository):
             is_active=item.is_active,
             created_at=item.created_at,
         )
-
-
-# Registration.register_repo(SQL, ItemRepository, SqlItemRepository)

@@ -1,4 +1,10 @@
 from abc import ABC, abstractmethod
+from contextlib import AbstractAsyncContextManager
+from typing import Callable
+
+from application.uow import UnitOfWork
+
+UowFactory = Callable[[], AbstractAsyncContextManager[UnitOfWork]]
 
 
 class UseCase(ABC):

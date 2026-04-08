@@ -33,7 +33,3 @@ class SqlUserRepository(UserRepository):
             is_active=user.is_active,
             created_at=user.created_at,
         )
-
-
-def sql_user_repository_factory(session: AsyncSession) -> SqlUserRepository:
-    return SqlUserRepository(session)

@@ -8,7 +8,6 @@ from api.rest.root_error_handlers import bind_handlers_to
 from api.rest.items.views import router as items_router
 from common.schemas import HealthResponse
 from config import get_settings
-from infra.bootstrap import Registration
 from middleware.correlation import CorrelationMiddleware
 from middleware.logging import LoggingMiddleware
 from observability.logging import setup_logging
@@ -30,7 +29,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    Registration()
     settings = get_settings()
 
     app = FastAPI(

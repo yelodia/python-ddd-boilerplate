@@ -14,3 +14,10 @@ class NotFoundError(DomainError):
 
 class RateLimitError(DomainError):
     """Example of CROSS-DOMAIN error, which can used everywhere (inside any domains)."""
+
+# Non-domain-specific errors, which can be used in any domain,
+# but not related to business logic, so they are not
+# DomainErrors.
+
+class UnknownStorageError(Exception): pass
+class UsecaseUnknownParamError(Exception): pass

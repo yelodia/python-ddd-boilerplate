@@ -15,7 +15,6 @@ from common.exceptions import DomainError, NotFoundError, RateLimitError
 
 _DEFAULT_STATUS_CODE = status.HTTP_400_BAD_REQUEST
 _STATUS_CODES: dict[type[Exception], int] = {
-    DomainError: _DEFAULT_STATUS_CODE,
     NotFoundError: status.HTTP_404_NOT_FOUND,
     RateLimitError: status.HTTP_429_TOO_MANY_REQUESTS,  # TODO just for example
 }
@@ -64,9 +63,16 @@ async def general_exception_handler(request, exc: Exception) -> JSONResponse:
 
 
 def bind_handlers_to(app: FastAPI) -> None:
-    """Bind all custom and default error handlers to the FastAPI app."""
+    """
+    Bind all custom and default error handlers to the FastAPI app.
+
+    The Rule:
+        - First - specific handlers for specific exceptions
+        - Then - default handler for all DomainError exceptions
+        - Finally - generic handler for all other exceptions
+    """
     custom_handlers = {
-        # add unpacking here for other custom handlers, if they exist
+        # you should unpack here all other custom handlers, if they exist
         **auth_handlers,
         **item_handlers,
     }
@@ -76,6 +82,8 @@ def bind_handlers_to(app: FastAPI) -> None:
 
     for ext_type in _STATUS_CODES.keys():
         app.add_exception_handler(ext_type, default_domain_errors_handler)
+
+    app.add_exception_handler(DomainError, default_domain_errors_handler)
 
     # also we can add some more general handlers for all another standard exceptions, for example:
     app.add_exception_handler(ValidationException, views_validation_error_handler)
