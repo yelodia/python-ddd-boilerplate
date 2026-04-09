@@ -3,7 +3,6 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from application.items.use_cases import ItemUseCases
 from infra.ws_manager import ConnectionManager, manager
 
 

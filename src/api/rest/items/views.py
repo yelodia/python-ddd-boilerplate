@@ -34,12 +34,6 @@ TODO при добавлении новой сущности:
 """
 
 
-@router.get("/ping", response_model=ItemResponse)
-async def ping(use_case: PingUseCase = build(PingUseCase)) -> ItemResponse:
-    item = await use_case.execute()
-    return ItemResponse.from_domain(item)
-
-
 @router.get("/", response_model=list[ItemResponse])
 async def list_items(
         offset: int = 0,
