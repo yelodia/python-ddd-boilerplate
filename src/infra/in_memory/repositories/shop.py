@@ -1,0 +1,83 @@
+from dataclasses import asdict
+
+from core.shop.entities import Product, Cart
+from core.shop.execptions import ProductNotFoundError, CartNotFoundError
+from core.shop.repositories import ProductRepository, CartRepository
+
+
+class InMemoryProductRepository(ProductRepository):
+    def __init__(self) -> None:
+        self._products: dict[int, Product] = {}
+        self._auto_increment_id = 0
+
+    async def get_by_id(self, product_id: int) -> Product:
+        product = self._products.get(product_id)
+        if not product:
+            raise ProductNotFoundError(f"Product with ID {product_id} not found")
+        return product
+
+    async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Product]:
+        products = sorted(self._products.values(), key=lambda p: p.id)
+        return products[offset:offset + limit]
+
+    async def create(self, product: Product) -> Product:
+        if product.id:
+            raise ValueError("Product with ID is cannot be created. Use update method instead.")
+
+        self._auto_increment_id += 1
+
+        product_with_id = Product(
+            id=self._auto_increment_id,
+            **asdict(product),
+        )
+        self._products[self._auto_increment_id] = product_with_id
+
+        return product_with_id
+
+    async def update(self, product: Product) -> None:
+        if not product.id:
+            raise ValueError("Product without ID is cannot be updated")
+
+        self._products[product.id] = product
+
+    async def delete(self, product_id: int) -> None:
+        self._products.pop(product_id, None)
+
+
+class InMemoryCartRepository(CartRepository):
+    def __init__(self) -> None:
+        self._carts: dict[int, Cart] = {}
+        self._auto_increment_id = 0
+
+    async def get_by_id(self, cart_id: int) -> Cart:
+        cart = self._carts.get(cart_id)
+        if not cart:
+            raise CartNotFoundError(f"Cart with ID {cart_id} not found")
+        return cart
+
+    async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Cart]:
+        carts = sorted(self._carts.values(), key=lambda c: c.id)
+        return carts[offset:offset + limit]
+
+    async def create(self, cart: Cart) -> Cart:
+        if cart.id:
+            raise ValueError("Cart with ID is cannot be created. Use update method instead.")
+
+        self._auto_increment_id += 1
+
+        cart_with_id = Cart(
+            id=self._auto_increment_id,
+            **asdict(cart),
+        )
+        self._carts[self._auto_increment_id] = cart_with_id
+
+        return cart_with_id
+
+    async def update(self, cart: Cart) -> None:
+        if not cart.id:
+            raise ValueError("Cart without ID is cannot be updated")
+
+        self._carts[cart.id] = cart
+
+    async def delete(self, cart_id: int) -> None:
+        self._carts.pop(cart_id, None)

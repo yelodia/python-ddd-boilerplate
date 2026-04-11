@@ -49,8 +49,8 @@ class UseCasesBuilder:
     }
     RAM: ClassVar[RepoRegistry] = {
         ItemRepository: InMemoryItemRepository,
-        UserRepository: InMemoryUserRepository,
-        # TODO не хватает RAM-реализации для ProductRepository и CartRepository!
+        ProductRepository: InMemoryProductRepository,
+        CartRepository: InMemoryCartRepository,
     }
 
     @classmethod
