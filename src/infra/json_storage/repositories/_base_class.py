@@ -10,7 +10,7 @@ from pydantic import BaseModel
 class Table(BaseModel):
     # аналог таблицы в реляционной БД, потому что где-то
     # нужно хранить автоинкрементальный счётчик
-    auto_increment_id: int = 1
+    auto_increment_id: int = 0
     data: list[dict[str, Any]] = []
 
 

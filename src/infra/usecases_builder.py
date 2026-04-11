@@ -4,17 +4,14 @@ from application.uow import UnitOfWork
 from common.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from common.use_case_base import UseCase, UowFactory
 from config import settings, SQL, JSON, RAM
-from core.auth.repository import UserRepository
 from core.items.repository import ItemRepository
 from core.shop.repositories import ProductRepository, CartRepository
 from infra.database.base import SessionFactory
-from infra.database.repositories.auth import SqlUserRepository
 from infra.database.repositories.item import SqlItemRepository
 from infra.database.uow import sql_unit_of_work
-from infra.in_memory.repositories.auth import InMemoryUserRepository
 from infra.in_memory.repositories.item import InMemoryItemRepository
+from infra.in_memory.repositories.shop import InMemoryProductRepository, InMemoryCartRepository
 from infra.in_memory.uow import in_memory_unit_of_work
-from infra.json_storage.repositories.auth import JsonUserRepository
 from infra.json_storage.repositories.item import JsonItemRepository
 from infra.json_storage.repositories.shop import JsonProductRepository, JsonCartRepository
 from infra.json_storage.uow import json_unit_of_work
@@ -43,12 +40,10 @@ class UseCasesBuilder:
     """
     SQL: ClassVar[RepoRegistry] = {
         ItemRepository: SqlItemRepository,
-        UserRepository: SqlUserRepository,
         # TODO не хватает SQL-реализации для ProductRepository и CartRepository!
     }
     JSON: ClassVar[RepoRegistry] = {
         ItemRepository: JsonItemRepository,
-        UserRepository: JsonUserRepository,
         ProductRepository: JsonProductRepository,
         CartRepository: JsonCartRepository,
     }

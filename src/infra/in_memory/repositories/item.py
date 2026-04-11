@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from core.items.exceptions import ItemAlreadyExistsError, ItemNotFoundError
-# from infra.bootstrap import register_repo, RAM, Registration
 from src.core.items.entities import Item
 from src.core.items.repository import ItemRepository
 
@@ -16,10 +15,9 @@ class InMemoryItemRepository(ItemRepository):
             raise ItemNotFoundError(f"Item with ID {item_id} not found")
         return item
 
-
     async def get_all(self, offset: int = 0, limit: int = 20) -> list[Item]:
         items = sorted(self._items.values(), key=lambda i: i.id)
-        return items[offset:offset+limit]
+        return items[offset:offset + limit]
 
     async def create(self, item: Item) -> None:
         if item.id in self._items.keys():
@@ -31,6 +29,3 @@ class InMemoryItemRepository(ItemRepository):
 
     async def delete(self, item_id: UUID) -> None:
         self._items.pop(item_id, None)
-
-
-# Registration.register_repo(RAM, ItemRepository, InMemoryItemRepository)
