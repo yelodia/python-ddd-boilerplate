@@ -9,5 +9,5 @@ UowFactory = Callable[[], AbstractAsyncContextManager[UnitOfWork]]
 
 class UseCase(ABC):
     @abstractmethod
-    def execute(self, *args, **kwargs):
+    async def execute(self, *args, **kwargs):
         raise NotImplementedError

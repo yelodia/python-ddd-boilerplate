@@ -1,17 +1,12 @@
 from pathlib import Path
 
-_JSON_FILES = ["items.json", "users.json"]  # FIXME хардкод!
-
 
 def ensure_json_storage(data_dir: str) -> None:
-    """Create data directory and seed empty JSON files if missing.
+    """
+    Урезанный аналог "миграций БД" для JSON-хранилища: просто гарантируем, что папка для данных существует.
+    В чем урезанность? Файлы ("таблицы") создаются самими репозиториями при первом обращении, а не заранее.
 
-    Analogous to DB migrations: must run once at startup,
-    before any repository is instantiated.
+    Эта функция вызывается при старте приложения. Например, в точке сборки main.py, в блоке lifespan.
     """
     base = Path(data_dir)
     base.mkdir(parents=True, exist_ok=True)
-    for name in _JSON_FILES:
-        path = base / name
-        if not path.exists():
-            path.write_text("[]", encoding="utf-8")

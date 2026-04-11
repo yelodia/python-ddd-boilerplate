@@ -2,9 +2,9 @@
 
 import pytest
 
+from infra.in_memory.repositories.auth import InMemoryUserRepository
+from infra.json_storage.repositories.auth import JsonUserRepository
 from src.core.auth.repository import UserRepository
-from infra.json_storage.repositories.user import JsonUserRepository
-from infra.in_memory.repositories.user import InMemoryUserRepository
 
 
 @pytest.fixture(params=["in_memory", "json"])

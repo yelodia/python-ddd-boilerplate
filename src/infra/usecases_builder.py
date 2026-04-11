@@ -6,15 +6,17 @@ from common.use_case_base import UseCase, UowFactory
 from config import settings, SQL, JSON, RAM
 from core.auth.repository import UserRepository
 from core.items.repository import ItemRepository
+from core.shop.repositories import ProductRepository, CartRepository
 from infra.database.base import SessionFactory
+from infra.database.repositories.auth import SqlUserRepository
 from infra.database.repositories.item import SqlItemRepository
-from infra.database.repositories.user import SqlUserRepository
 from infra.database.uow import sql_unit_of_work
+from infra.in_memory.repositories.auth import InMemoryUserRepository
 from infra.in_memory.repositories.item import InMemoryItemRepository
-from infra.in_memory.repositories.user import InMemoryUserRepository
 from infra.in_memory.uow import in_memory_unit_of_work
+from infra.json_storage.repositories.auth import JsonUserRepository
 from infra.json_storage.repositories.item import JsonItemRepository
-from infra.json_storage.repositories.user import JsonUserRepository
+from infra.json_storage.repositories.shop import JsonProductRepository, JsonCartRepository
 from infra.json_storage.uow import json_unit_of_work
 
 S = TypeVar('S')
@@ -22,17 +24,38 @@ RepoRegistry = dict[type, type]
 
 
 class UseCasesBuilder:
+    """
+    Этот класс - фабрика для юзкейсов. Он знает, какие репозитории, UoW и прочие штуки нужны для каждого юзкейса,
+    однако он может читать сигнатуры их конструкторов и самостоятельно подготавливать к работе объекты нужных классов.
+
+    При появлении в системе нового репозитория (в любом домене) - необходимо его "зарегистрировать".
+    Т.е. связать абстрактный интерфейс репозитория с его конкретной реализацией для каждого из поддерживаемых типов
+    хранилищ (SQL, JSON, RAM) в нижеследующих словарях.
+
+    Словарь - вид хранилища, ключ - интерфейс репозитория, значение - класс его реализации под этот вид хранилища.
+
+    Сами юзкейсы сюда тащить не нужно! Этим занимаются конечные точки (эндпоинты) и вьюхи:
+        - импортируют откуда-то класс юзкейса (БЕЗ ЕГО ИНИЦИАЛИЗАЦИИ!)
+        - скармливают его билдеру в метод `.get_use_case()` (напрямую или через Depends - не важно)
+        - билдер выполняет свою работу и возвращает уже готовый, полностью укомплектованный экземпляр юзкейса
+        - ...
+        - PROFIT!
+    """
     SQL: ClassVar[RepoRegistry] = {
         ItemRepository: SqlItemRepository,
         UserRepository: SqlUserRepository,
+        # TODO не хватает SQL-реализации для ProductRepository и CartRepository!
     }
     JSON: ClassVar[RepoRegistry] = {
         ItemRepository: JsonItemRepository,
         UserRepository: JsonUserRepository,
+        ProductRepository: JsonProductRepository,
+        CartRepository: JsonCartRepository,
     }
     RAM: ClassVar[RepoRegistry] = {
         ItemRepository: InMemoryItemRepository,
         UserRepository: InMemoryUserRepository,
+        # TODO не хватает RAM-реализации для ProductRepository и CartRepository!
     }
 
     @classmethod
@@ -77,9 +100,10 @@ class UseCasesBuilder:
             raise UsecaseUnknownParamError(
                 f"Unknown parameter '{param_name}' with type '{annotation}' in use case '{use_case_class.__name__}'")
 
-        return use_case_class(**input_params)  # FIXME рекомендовано полечить неким cast'ом, но я хз куда это пихать
-                                               #  from typing import cast
-                                               #  return cast(UseCase, use_case_class(**input_params))
+        return use_case_class(**input_params)
+        # FIXME рекомендовано полечить неким cast'ом, но я хз куда это пихать
+        #  from typing import cast
+        #  return cast(UseCase, use_case_class(**input_params))
 
     @staticmethod
     def get_uow() -> AsyncContextManager[UnitOfWork]:

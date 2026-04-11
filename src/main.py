@@ -4,10 +4,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 
 from api.rest.auth.views import router as auth_router
-from api.rest.root_error_handlers import bind_handlers_to
 from api.rest.items.views import router as items_router
+from api.rest.root_error_handlers import bind_handlers_to
+from api.rest.shop.views import products_router, carts_router
 from common.schemas import HealthResponse
 from config import get_settings
+from infra.json_storage.setup import ensure_json_storage
 from middleware.correlation import CorrelationMiddleware
 from middleware.logging import LoggingMiddleware
 from observability.logging import setup_logging
@@ -21,8 +23,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     settings = get_settings()
     if settings.use_json_storage:
-        from infra.json_storage.setup import ensure_json_storage  # FIXME импорт посреди runtime -_-
-
         ensure_json_storage(settings.json_data_dir)
 
     yield
@@ -48,6 +48,8 @@ def create_app() -> FastAPI:
     router = APIRouter(prefix="/api/v1")
     router.include_router(auth_router)
     router.include_router(items_router)
+    router.include_router(products_router)
+    router.include_router(carts_router)
     app.include_router(router)
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])

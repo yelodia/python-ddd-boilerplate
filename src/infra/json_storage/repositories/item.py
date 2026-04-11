@@ -1,4 +1,5 @@
 import json
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
@@ -6,13 +7,11 @@ from uuid import UUID
 import aiofiles
 
 from core.items.exceptions import ItemNotFoundError
-# from infra.bootstrap import register_repo, JSON, Registration
 from src.core.items.entities import Item
 from src.core.items.repository import ItemRepository
-from dataclasses import asdict
 
 
-# TODO вероятно, стоит завести какие-то местные модельки на будущее,
+# TODO вероятно, стоит завести какие-то местные модельки (pydantic) на будущее,
 #  чтобы изменения в сущностях не приводили к слому структуры хранимых данных.
 #  В первую очередь касается методов create и update, но пока что так сойдет.
 

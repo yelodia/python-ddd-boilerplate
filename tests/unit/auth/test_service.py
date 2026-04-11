@@ -2,7 +2,7 @@ import pytest
 
 from core.auth.exceptions import UserNotFoundError
 from core.auth.service import AuthService
-from infra.in_memory.repositories.user import InMemoryUserRepository
+from infra.in_memory.repositories.auth import InMemoryUserRepository
 
 
 @pytest.fixture
