@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from common.entity_base import Entity, Aggregate, ValueObject
-from core.shop.execptions import WrongCartItemPcsError, CartIsFullError, BadDeliveryAddressError
+from core.shop.exceptions import WrongCartItemPcsError, CartIsFullError, BadDeliveryAddressError
 
 
 @dataclass(kw_only=True)

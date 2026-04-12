@@ -4,7 +4,7 @@
 Никаких мапперов, никаких промежуточных моделей.
 """
 from core.shop.entities import Product, Cart
-from core.shop.execptions import ProductNotFoundError, CartNotFoundError
+from core.shop.exceptions import ProductNotFoundError, CartNotFoundError
 from core.shop.repo_interfaces import ProductRepository, CartRepository
 
 
