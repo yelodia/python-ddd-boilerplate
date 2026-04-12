@@ -26,10 +26,12 @@ carts_router = APIRouter(prefix="/carts", tags=["carts"])
 
 # region Product Views
 @products_router.get("/", response_model=list[ProductResponse])
-async def list_items(
-        cmd: ShowAllProductsCmd,
+async def show_all_products_view(
+        offset: int = 0,
+        limit: int = 20,
         use_case: ShowAllProductsUseCase = build(ShowAllProductsUseCase),
 ) -> list[ProductResponse]:
+    cmd = ShowAllProductsCmd(offset=offset, limit=limit)
     products = await use_case.execute(cmd)
     return [ProductResponse.model_validate(asdict(x)) for x in products]
 

@@ -9,6 +9,10 @@ src/data
 
 # Environment
 .env
+.env.*
+*.env
+*.env.*
+!.env.example
 
 # JSON storage (Phase 1)
 data/*.json

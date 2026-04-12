@@ -3,10 +3,6 @@ from fastapi import status
 from fastapi.exceptions import ValidationException
 from starlette.responses import JSONResponse
 
-from api.rest.auth.error_handlers import (
-    custom_error_handlers as auth_handlers,
-    specific_status_codes as auth_specific_codes,
-)
 from api.rest.items.error_handlers import (
     custom_error_handlers as item_handlers,
     specific_status_codes as item_specific_codes,
@@ -18,7 +14,6 @@ _STATUS_CODES: dict[type[Exception], int] = {
     NotFoundError: status.HTTP_404_NOT_FOUND,
     RateLimitError: status.HTTP_429_TOO_MANY_REQUESTS,  # TODO just for example
 }
-_STATUS_CODES.update(auth_specific_codes)
 _STATUS_CODES.update(item_specific_codes)
 
 
@@ -73,7 +68,6 @@ def bind_handlers_to(app: FastAPI) -> None:
     """
     custom_handlers = {
         # you should unpack here all other custom handlers, if they exist
-        **auth_handlers,
         **item_handlers,
     }
 

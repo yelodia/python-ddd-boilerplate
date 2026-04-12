@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, APIRouter
 
-from api.rest.auth.views import router as auth_router
 from api.rest.items.views import router as items_router
 from api.rest.root_error_handlers import bind_handlers_to
 from api.rest.shop.views import products_router, carts_router
@@ -46,7 +45,6 @@ def create_app() -> FastAPI:
     bind_handlers_to(app)
 
     router = APIRouter(prefix="/api/v1")
-    router.include_router(auth_router)
     router.include_router(items_router)
     router.include_router(products_router)
     router.include_router(carts_router)
