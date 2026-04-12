@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
-from application.uow import UnitOfWork
-from infra.database.base import get_session
+
+from application.uow_interface import UnitOfWork
 
 
 class SqlUnitOfWork(UnitOfWork):

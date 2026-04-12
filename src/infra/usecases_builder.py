@@ -1,6 +1,6 @@
 from typing import TypeVar, ClassVar, get_type_hints, AsyncContextManager
 
-from application.uow import UnitOfWork
+from application.uow_interface import UnitOfWork
 from common.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from common.use_case_base import UseCase, UowFactory
 from config import settings, SQL, JSON, RAM

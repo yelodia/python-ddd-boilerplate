@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from application.uow import UnitOfWork
+from application.uow_interface import UnitOfWork
 
 
 class JsonUnitOfWork(UnitOfWork):
