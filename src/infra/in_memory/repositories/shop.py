@@ -1,5 +1,8 @@
-from dataclasses import asdict
-
+"""
+Раз уж это in-memory хранилища, то можно не заморачиваемся и просто складировать доменные объекты AS IS в словаре.
+Словарь - всего-навсего для лаконичного и быстрого поиска нужного экземпляра по ID.
+Никаких мапперов, никаких промежуточных моделей.
+"""
 from core.shop.entities import Product, Cart
 from core.shop.execptions import ProductNotFoundError, CartNotFoundError
 from core.shop.repositories import ProductRepository, CartRepository
@@ -26,13 +29,10 @@ class InMemoryProductRepository(ProductRepository):
 
         self._auto_increment_id += 1
 
-        product_with_id = Product(
-            id=self._auto_increment_id,
-            **asdict(product),
-        )
-        self._products[self._auto_increment_id] = product_with_id
+        product.assign_to_id(self._auto_increment_id)
+        self._products[self._auto_increment_id] = product
 
-        return product_with_id
+        return product
 
     async def update(self, product: Product) -> None:
         if not product.id:
@@ -65,13 +65,10 @@ class InMemoryCartRepository(CartRepository):
 
         self._auto_increment_id += 1
 
-        cart_with_id = Cart(
-            id=self._auto_increment_id,
-            **asdict(cart),
-        )
-        self._carts[self._auto_increment_id] = cart_with_id
+        cart.assign_to_id(self._auto_increment_id)
+        self._carts[self._auto_increment_id] = cart
 
-        return cart_with_id
+        return cart
 
     async def update(self, cart: Cart) -> None:
         if not cart.id:

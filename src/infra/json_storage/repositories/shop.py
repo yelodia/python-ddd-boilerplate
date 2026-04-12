@@ -46,18 +46,21 @@ class JsonProductRepository(ProductRepository, JsonRepositoryBase):
         if product.id:
             raise ValueError("Product with ID is cannot be created. Use update method instead.")
 
+        # теперь это правда доменная сущность, а не "просто DTO без ID"
+        product.assign_to_id(table.auto_increment_id)
+
+        # маппинг из доменной сущности в модель хранилища
         record = ProductInStorage(
             id=table.auto_increment_id,
             name=product.name,
             price=product.price,
             description=product.description,
         )
-        product_with_id = self._to_domain(record)
 
         table.data.append(record.model_dump(mode='json'))
         await self._save(table)
 
-        return product_with_id
+        return product
 
     async def update(self, product: Product) -> None:
         table = await self._load()
@@ -88,7 +91,7 @@ class JsonProductRepository(ProductRepository, JsonRepositoryBase):
     @staticmethod
     def _to_domain(record: ProductInStorage) -> Product:
         return Product(
-            id=record.id,  # FIXME какая-то ошибка ожидаемых типов
+            id=record.id,
             name=record.name,
             price=record.price,
             description=record.description,
@@ -145,25 +148,15 @@ class JsonCartRepository(CartRepository, JsonRepositoryBase):
         if cart.id:
             raise ValueError("Cart with ID is cannot be created. Use update method instead.")
 
-        record = CartInStorage(
-            id=table.auto_increment_id,
-            items=[CartItemInStorage(
-                product_id=x.product_id,
-                price=x.price,
-                pcs=x.pcs,
-            ) for x in cart.items],
-            delivery_address=DeliveryAddressInStorage(
-                city=cart.delivery_address.city,
-                street=cart.delivery_address.street,
-                house=cart.delivery_address.house,
-                apartment=cart.delivery_address.apartment,
-            ) if cart.delivery_address else None,
-        )
-        cart_with_id = self._to_domain(record)
+        # теперь это правда доменная сущность, а не "просто DTO без ID"
+        cart.assign_to_id(table.auto_increment_id)
+
+        # маппинг из доменной сущности в модель хранилища
+        record = self._from_domain(table.auto_increment_id, cart)
 
         table.data.append(record.model_dump(mode='json'))
         await self._save(table)
-        return cart_with_id
+        return cart
 
     async def update(self, cart: Cart) -> None:
         table = await self._load()
@@ -171,24 +164,12 @@ class JsonCartRepository(CartRepository, JsonRepositoryBase):
         if not cart.id:
             raise ValueError("Cart without ID is cannot be updated")
 
-        updated_record = CartInStorage(
-            id=cart.id,
-            items=[CartItemInStorage(
-                product_id=x.product_id,
-                price=x.price,
-                pcs=x.pcs,
-            ) for x in cart.items],
-            delivery_address=DeliveryAddressInStorage(
-                city=cart.delivery_address.city,
-                street=cart.delivery_address.street,
-                house=cart.delivery_address.house,
-                apartment=cart.delivery_address.apartment,
-            ) if cart.delivery_address else None,
-        ).model_dump(mode='json')
+        # маппинг из доменной сущности в модель хранилища
+        updated_record = self._from_domain(cart.id, cart)
 
         for idx, record in enumerate(table.data):
             if record["id"] == cart.id:
-                table.data[idx] = updated_record
+                table.data[idx] = updated_record.model_dump(mode='json')
                 break
 
         await self._save(table)
@@ -215,4 +196,22 @@ class JsonCartRepository(CartRepository, JsonRepositoryBase):
                 house=record.delivery_address.house,
                 apartment=record.delivery_address.apartment,
             ) if record.delivery_address else None,
+        )
+
+    @staticmethod
+    def _from_domain(record_id: int, cart: Cart) -> CartInStorage:
+        """Преобразует доменную сущность Cart в запись для хранилища"""
+        return CartInStorage(
+            id=record_id,
+            items=[CartItemInStorage(
+                product_id=cart_item.product_id,
+                price=cart_item.price,
+                pcs=cart_item.pcs,
+            ) for cart_item in cart.items],
+            delivery_address=DeliveryAddressInStorage(
+                city=cart.delivery_address.city,
+                street=cart.delivery_address.street,
+                house=cart.delivery_address.house,
+                apartment=cart.delivery_address.apartment,
+            ) if cart.delivery_address else None
         )
