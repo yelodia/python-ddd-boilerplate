@@ -8,7 +8,7 @@ import aiofiles
 
 from core.items.exceptions import ItemNotFoundError
 from src.core.items.entities import Item
-from src.core.items.repository import ItemRepository
+from src.core.items.repo_interfaces import ItemRepository
 
 
 # TODO вероятно, стоит завести какие-то местные модельки (pydantic) на будущее,

@@ -4,8 +4,8 @@ from application.uow_interface import UnitOfWork
 from common.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from common.use_case_base import UseCase, UowFactory
 from config import settings, SQL, JSON, RAM
-from core.items.repository import ItemRepository
-from core.shop.repositories import ProductRepository, CartRepository
+from core.items.repo_interfaces import ItemRepository
+from core.shop.repo_interfaces import ProductRepository, CartRepository
 from infra.database.base import SessionFactory
 from infra.database.repositories.item import SqlItemRepository
 from infra.database.uow import sql_unit_of_work

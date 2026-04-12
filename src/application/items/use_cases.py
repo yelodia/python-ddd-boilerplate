@@ -9,7 +9,7 @@ from application.items.commands import (
 )
 from common.use_case_base import UseCase, UowFactory
 from core.items.entities import Item
-from core.items.repository import ItemRepository
+from core.items.repo_interfaces import ItemRepository
 
 logger = structlog.get_logger(__name__)
 

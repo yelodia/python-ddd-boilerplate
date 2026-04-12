@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.items.entities import Item as ItemEntity
 from core.items.exceptions import ItemNotFoundError
-from core.items.repository import ItemRepository
+from core.items.repo_interfaces import ItemRepository
 from infra.database.orm_models.item import Item as ItemORM
 
 

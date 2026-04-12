@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from core.shop.entities import Product, Cart, CartItem, DeliveryAddress
 from core.shop.execptions import ProductNotFoundError, CartNotFoundError
-from core.shop.repositories import ProductRepository, CartRepository
+from core.shop.repo_interfaces import ProductRepository, CartRepository
 from infra.json_storage.repositories._base_class import JsonRepositoryBase
 
 

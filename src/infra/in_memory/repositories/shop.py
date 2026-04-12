@@ -5,7 +5,7 @@
 """
 from core.shop.entities import Product, Cart
 from core.shop.execptions import ProductNotFoundError, CartNotFoundError
-from core.shop.repositories import ProductRepository, CartRepository
+from core.shop.repo_interfaces import ProductRepository, CartRepository
 
 
 class InMemoryProductRepository(ProductRepository):

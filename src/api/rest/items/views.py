@@ -26,7 +26,7 @@ router = APIRouter(prefix="/items", tags=["items"])
 """
 TODO при добавлении новой сущности:
 1) создать сущность в core/*/entities.py
-2) создать новый репозиторий (интерфейс) в слое core/BOUNDED_CONTEXT/repository.py
+2) создать новый репозиторий (интерфейс) в слое core/BOUNDED_CONTEXT/repo_interfaces.py
 3) создать реализацию репозитория в слое infra/STORAGE_IMPL/repositories/*.py
 4) "зарегистрировать" реализации репозиториев в "билдере" infra/usecases_builder.py
 5) создать команды и юзкейсы в слое application

@@ -8,7 +8,7 @@ from application.shop.commands import (
 )
 from common.use_case_base import UseCase, UowFactory
 from core.shop.entities import Product, Cart
-from core.shop.repositories import ProductRepository, CartRepository
+from core.shop.repo_interfaces import ProductRepository, CartRepository
 
 
 class ShowAllProductsUseCase(UseCase):
