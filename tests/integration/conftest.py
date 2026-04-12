@@ -6,7 +6,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from config import get_settings
-from infra.json_storage.setup import ensure_json_storage
+from infra.storage.json_storage.setup import ensure_json_storage
 from main import create_app
 
 

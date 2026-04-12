@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import String, func, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from infra.database.base import Base
+from infra.storage.database.basic_stuff import Base
 
 
 class Item(Base):

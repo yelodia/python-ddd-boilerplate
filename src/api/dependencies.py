@@ -1,7 +1,10 @@
+from typing import Annotated
+
 from fastapi import Depends
 
-from common.use_case_base import UseCase
+from application.use_case_base import UseCase
 from infra.usecases_builder import UseCasesBuilder
+from infra.ws_manager import ConnectionManager, manager
 
 
 def use_case_factory(use_case_class: type[UseCase]):
@@ -13,3 +16,10 @@ def use_case_factory(use_case_class: type[UseCase]):
 
 def build(use_case_class: type[UseCase]):
     return Depends(use_case_factory(use_case_class))
+
+
+def get_ws_manager() -> ConnectionManager:
+    return manager
+
+
+WsManagerDep = Annotated[ConnectionManager, Depends(get_ws_manager)]

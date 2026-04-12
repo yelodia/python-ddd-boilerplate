@@ -3,8 +3,8 @@ from uuid import UUID
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from pydantic import BaseModel
 
+from api.dependencies import WsManagerDep
 from api.dependencies import build
-from api.deprecated_dependencies import WsManagerDep
 from api.rest.items.responses import ItemResponse
 from application.items.commands import (
     CreateItemCmd,

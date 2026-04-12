@@ -7,7 +7,7 @@ from api.rest.items.error_handlers import (
     custom_error_handlers as item_handlers,
     specific_status_codes as item_specific_codes,
 )
-from common.exceptions import DomainError, NotFoundError, RateLimitError
+from core.exceptions import DomainError, NotFoundError, RateLimitError
 
 _DEFAULT_STATUS_CODE = status.HTTP_400_BAD_REQUEST
 _STATUS_CODES: dict[type[Exception], int] = {

@@ -1,4 +1,4 @@
-from common.exceptions import DomainError, NotFoundError
+from core.exceptions import DomainError, NotFoundError
 
 
 class WrongCartItemPcsError(DomainError):

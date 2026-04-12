@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from common.entity_base import Entity, Aggregate, ValueObject
+from core.entity_base import Entity, Aggregate, ValueObject
 from core.shop.exceptions import WrongCartItemPcsError, CartIsFullError, BadDeliveryAddressError
 
 

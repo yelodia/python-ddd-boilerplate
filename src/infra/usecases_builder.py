@@ -1,20 +1,20 @@
 from typing import TypeVar, ClassVar, get_type_hints, AsyncContextManager
 
 from application.uow_interface import UnitOfWork
-from common.exceptions import UnknownStorageError, UsecaseUnknownParamError
-from common.use_case_base import UseCase, UowFactory
+from application.use_case_base import UseCase, UowFactory
 from config import settings, SQL, JSON, RAM
+from core.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from core.items.repo_interfaces import ItemRepository
 from core.shop.repo_interfaces import ProductRepository, CartRepository
-from infra.database.base import SessionFactory
-from infra.database.repositories.item import SqlItemRepository
-from infra.database.uow import sql_unit_of_work
-from infra.in_memory.repositories.item import InMemoryItemRepository
-from infra.in_memory.repositories.shop import InMemoryProductRepository, InMemoryCartRepository
-from infra.in_memory.uow import in_memory_unit_of_work
-from infra.json_storage.repositories.item import JsonItemRepository
-from infra.json_storage.repositories.shop import JsonProductRepository, JsonCartRepository
-from infra.json_storage.uow import json_unit_of_work
+from infra.storage.database.basic_stuff import SessionFactory
+from infra.storage.database.repositories.item import SqlItemRepository
+from infra.storage.database.uow import sql_unit_of_work
+from infra.storage.in_memory.repositories.item import InMemoryItemRepository
+from infra.storage.in_memory.repositories.shop import InMemoryProductRepository, InMemoryCartRepository
+from infra.storage.in_memory.uow import in_memory_unit_of_work
+from infra.storage.json_storage.repositories.item import JsonItemRepository
+from infra.storage.json_storage.repositories.shop import JsonProductRepository, JsonCartRepository
+from infra.storage.json_storage.uow import json_unit_of_work
 
 S = TypeVar('S')
 RepoRegistry = dict[type, type]

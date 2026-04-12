@@ -2,17 +2,17 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, APIRouter
+from pydantic import BaseModel
 
 from api.rest.items.views import router as items_router
 from api.rest.root_error_handlers import bind_handlers_to
 from api.rest.shop.views import products_router, carts_router
-from common.schemas import HealthResponse
 from config import get_settings
-from infra.json_storage.setup import ensure_json_storage
-from middleware.correlation import CorrelationMiddleware
-from middleware.logging import LoggingMiddleware
-from observability.logging import setup_logging
-from observability.tracing import setup_tracing
+from infra.middleware.correlation import CorrelationMiddleware
+from infra.middleware.logging import LoggingMiddleware
+from infra.observability.logging import setup_logging
+from infra.observability.tracing import setup_tracing
+from infra.storage.json_storage.setup import ensure_json_storage
 
 
 @asynccontextmanager
@@ -25,6 +25,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         ensure_json_storage(settings.json_data_dir)
 
     yield
+
+
+class HealthResponse(BaseModel):
+    status: str = "ok"
+    version: str = "0.1.0"
 
 
 def create_app() -> FastAPI:

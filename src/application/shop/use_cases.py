@@ -6,7 +6,7 @@ from application.shop.commands import (
     PutProductToCartCmd,
     ShowCartCmd,
 )
-from common.use_case_base import UseCase, UowFactory
+from application.use_case_base import UseCase, UowFactory
 from core.shop.entities import Product, Cart
 from core.shop.repo_interfaces import ProductRepository, CartRepository
 

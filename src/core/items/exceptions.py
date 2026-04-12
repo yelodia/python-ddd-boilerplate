@@ -1,7 +1,7 @@
 """
 Place to define all exceptions, specific-related to these bounded-context.
 
-You can use any shared class from common.exceptions as parent, or just inherits from DomainError directly.
+You can use any shared class from core.exceptions as parent, or just inherits from DomainError directly.
 
 For DDD it absolute doesn't matter, but can help you classifies errors types on infrastructure layer easy and correctly.
 
@@ -9,7 +9,7 @@ For example: we have few errors, which means "something was not found". Does not
 to mapping each error to http status_code personally - just return 404 for any "not found" error and job is done, amigo!
 """
 
-from common.exceptions import DomainError, NotFoundError
+from core.exceptions import DomainError, NotFoundError
 
 
 class ItemNotFoundError(NotFoundError):
