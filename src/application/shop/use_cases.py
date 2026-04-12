@@ -1,3 +1,4 @@
+from application.event_bus_interface import EventBus
 from application.shop.commands import (
     ShowAllProductsCmd,
     CreateProductCmd,
@@ -5,9 +6,12 @@ from application.shop.commands import (
     ShowAllCartsCmd,
     PutProductToCartCmd,
     ShowCartCmd,
+    RemoveProductFromCartCmd,
+    ClearCartCmd,
 )
 from application.use_case_base import UseCase, UowFactory
 from core.shop.entities import Product, Cart
+from core.shop.events import NewCartCreated
 from core.shop.repo_interfaces import ProductRepository, CartRepository
 
 
@@ -55,23 +59,37 @@ class ShowCartUseCase(UseCase):
 
 
 class CreateEmptyCartUseCase(UseCase):
-    def __init__(self, repo: CartRepository, uow: UowFactory):
+    def __init__(self, repo: CartRepository, uow: UowFactory, event_bus: EventBus):
         self.repo = repo
         self.uow = uow
+        self.event_bus = event_bus
 
     async def execute(self, cmd: CreateEmptyCartCmd) -> Cart:
         empty_cart = Cart()
         async with self.uow():
             persisted_cart = await self.repo.create(empty_cart)
 
+        # TODO единственная категория "особых" событий - "первое создание объекта в системе"
+        # пуш таких событий должен происходить в домене,
+        # но т.к. не он контролирует выдачу ID - пришлось озадачить юзкейс
+        await self.event_bus.publish(NewCartCreated(cart_id=persisted_cart.id))
+        await self.event_bus.dispatch_pending()
+
         return persisted_cart
 
 
 class PutProductToCartUseCase(UseCase):
-    def __init__(self, cart_repo: CartRepository, product_repo: ProductRepository, uow: UowFactory):
+    def __init__(
+            self,
+            cart_repo: CartRepository,
+            product_repo: ProductRepository,
+            uow: UowFactory,
+            event_bus: EventBus
+    ):
         self.cart_repo = cart_repo
         self.product_repo = product_repo
         self.uow = uow
+        self.event_bus = event_bus
 
     async def execute(self, cmd: PutProductToCartCmd) -> Cart:
         async with self.uow():
@@ -80,7 +98,60 @@ class PutProductToCartUseCase(UseCase):
 
             cart.put_product(product, cmd.pcs)
 
-            async with self.uow():
-                await self.cart_repo.update(cart)
+            await self.cart_repo.update(cart)
 
-            return cart
+        for event in cart._events:
+            await self.event_bus.publish(event)
+
+        await self.event_bus.dispatch_pending()
+
+        return cart
+
+
+class RemoveProductFromCartUseCase(UseCase):
+    def __init__(
+            self,
+            cart_repo: CartRepository,
+            product_repo: ProductRepository,
+            uow: UowFactory,
+            event_bus: EventBus
+    ):
+        self.cart_repo = cart_repo
+        self.product_repo = product_repo
+        self.uow = uow
+        self.event_bus = event_bus
+
+    async def execute(self, cmd: RemoveProductFromCartCmd) -> Cart:
+        cart = await self.cart_repo.get_by_id(cmd.cart_id)
+
+        async with self.uow():
+            cart.remove_product(cmd.product_id)
+            await self.cart_repo.update(cart)
+
+        for event in cart._events:
+            await self.event_bus.publish(event)
+
+        await self.event_bus.dispatch_pending()
+
+        return cart
+
+
+class ClearCartUseCase(UseCase):
+    def __init__(self, cart_repo: CartRepository, uow: UowFactory, event_bus: EventBus):
+        self.cart_repo = cart_repo
+        self.uow = uow
+        self.event_bus = event_bus
+
+    async def execute(self, cmd: ClearCartCmd) -> Cart:
+        cart = await self.cart_repo.get_by_id(cmd.cart_id)
+
+        async with self.uow():
+            cart.clear()
+            await self.cart_repo.update(cart)
+
+        for event in cart._events:
+            await self.event_bus.publish(event)
+
+        await self.event_bus.dispatch_pending()
+
+        return cart

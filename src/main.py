@@ -5,9 +5,11 @@ from fastapi import FastAPI, APIRouter
 from pydantic import BaseModel
 
 from api.rest.items.views import router as items_router
-from api.rest.root_error_handlers import bind_handlers_to
+from api.rest.root_error_handlers import bind_error_handlers_to
 from api.rest.shop.views import products_router, carts_router
+from application.shop import event_handlers as shop_event_handlers
 from config import get_settings
+from infra.async_event_bus import AsyncInProcessEventBus
 from infra.middleware.correlation import CorrelationMiddleware
 from infra.middleware.logging import LoggingMiddleware
 from infra.observability.logging import setup_logging
@@ -47,7 +49,9 @@ def create_app() -> FastAPI:
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(CorrelationMiddleware)
 
-    bind_handlers_to(app)
+    bind_error_handlers_to(app)
+
+    AsyncInProcessEventBus.do_something(shop_event_handlers)
 
     router = APIRouter(prefix="/api/v1")
     router.include_router(items_router)

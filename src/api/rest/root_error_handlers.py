@@ -57,7 +57,7 @@ async def general_exception_handler(request, exc: Exception) -> JSONResponse:
     )
 
 
-def bind_handlers_to(app: FastAPI) -> None:
+def bind_error_handlers_to(app: FastAPI) -> None:
     """
     Bind all custom and default error handlers to the FastAPI app.
 

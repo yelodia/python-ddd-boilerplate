@@ -11,6 +11,8 @@ from application.shop.commands import (
     CreateEmptyCartCmd,
     PutProductToCartCmd,
     ShowCartCmd,
+    ClearCartCmd,
+    RemoveProductFromCartCmd,
 )
 from application.shop.use_cases import (
     ShowAllProductsUseCase,
@@ -18,6 +20,8 @@ from application.shop.use_cases import (
     CreateEmptyCartUseCase,
     PutProductToCartUseCase,
     ShowCartUseCase,
+    ClearCartUseCase,
+    RemoveProductFromCartUseCase,
 )
 
 products_router = APIRouter(prefix="/products", tags=["products"])
@@ -74,6 +78,27 @@ async def get_cart(
         use_case: ShowCartUseCase = build(ShowCartUseCase),
 ) -> CartResponse:
     cmd = ShowCartCmd(cart_id=cart_id)
+    cart = await use_case.execute(cmd)
+    return CartResponse.model_validate(asdict(cart))
+
+
+@carts_router.delete("/{cart_id}/{product_id}", response_model=CartResponse)
+async def remove_product_from_cart(
+        cart_id: int,
+        product_id: int,
+        use_case: RemoveProductFromCartUseCase = build(RemoveProductFromCartUseCase),
+) -> CartResponse:
+    cmd = RemoveProductFromCartCmd(cart_id=cart_id, product_id=product_id)
+    updated_cart = await use_case.execute(cmd)
+    return CartResponse.model_validate(asdict(updated_cart))
+
+
+@carts_router.delete("/{cart_id}", response_model=CartResponse)
+async def clear_cart(
+        cart_id: int,
+        use_case: ClearCartUseCase = build(ClearCartUseCase),
+) -> CartResponse:
+    cmd = ClearCartCmd(cart_id=cart_id)
     cart = await use_case.execute(cmd)
     return CartResponse.model_validate(asdict(cart))
 

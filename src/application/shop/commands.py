@@ -31,6 +31,11 @@ class PutProductToCartCmd(BaseModel):
     pcs: int
 
 
+class RemoveProductFromCartCmd(BaseModel):
+    cart_id: int
+    product_id: int
+
+
 class UpdateCartDeliveryAddressCmd(BaseModel):
     cart_id: int
     city: str

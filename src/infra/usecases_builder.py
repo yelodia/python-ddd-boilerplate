@@ -1,11 +1,14 @@
 from typing import TypeVar, ClassVar, get_type_hints, AsyncContextManager
 
+from application.event_bus_interface import EventBus
+from application.event_bus_stuff import handlers_map_factory
 from application.uow_interface import UnitOfWork
 from application.use_case_base import UseCase, UowFactory
 from config import settings, SQL, JSON, RAM
 from core.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from core.items.repo_interfaces import ItemRepository
 from core.shop.repo_interfaces import ProductRepository, CartRepository
+from infra.async_event_bus import async_event_bus_factory
 from infra.storage.database.basic_stuff import SessionFactory
 from infra.storage.database.repositories.item import SqlItemRepository
 from infra.storage.database.uow import sql_unit_of_work
@@ -92,6 +95,10 @@ class UseCasesBuilder:
                 input_params[param_name] = self.get_entity_repo(annotation)
                 continue
 
+            if annotation is EventBus:
+                input_params[param_name] = self.get_event_bus()
+                continue
+
             raise UsecaseUnknownParamError(
                 f"Unknown parameter '{param_name}' with type '{annotation}' in use case '{use_case_class.__name__}'")
 
@@ -112,3 +119,7 @@ class UseCasesBuilder:
             return in_memory_unit_of_work()
 
         raise UnknownStorageError(f"Unsupported storage backend: {settings.storage_backend}")
+
+    @staticmethod
+    def get_event_bus() -> EventBus:
+        return async_event_bus_factory(handlers_map_factory())

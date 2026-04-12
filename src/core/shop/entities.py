@@ -2,7 +2,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from core.entity_base import Entity, Aggregate, ValueObject
-from core.shop.exceptions import WrongCartItemPcsError, CartIsFullError, BadDeliveryAddressError
+from core.shop.events import ProductWasAddedToCart, ProductWasRemovedFromCart, CartWasCleared
+from core.shop.exceptions import WrongCartItemPcsError, CartIsFullError, BadDeliveryAddressError, ProductNotFoundError
 
 
 @dataclass(kw_only=True)
@@ -28,6 +29,7 @@ class Cart(Aggregate):
     items: list[CartItem] = field(default_factory=list)
     delivery_address: DeliveryAddress | None = None
     created_at: datetime | None = field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    _events: list = field(default_factory=list, init=False, repr=False)
 
     @property
     def total_price(self) -> float:
@@ -53,9 +55,21 @@ class Cart(Aggregate):
             return
 
         existed_item.add(pcs)
+        self._events.append(ProductWasAddedToCart(product_id=product.id, cart_id=self.id, pcs=pcs))
+
+    def remove_product(self, product_id: int) -> None:
+        found_item = next((x for x in self.items if x.product_id == product_id), None)
+
+        if not found_item:
+            raise ProductNotFoundError(f'Товара с id {product_id} нет в корзине')
+
+        self.items.remove(found_item)
+        self._events.append(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=found_item.pcs))
+
 
     def clear(self) -> None:
         self.items = []
+        self._events.append(CartWasCleared(cart_id=self.id))
 
     # TODO имплементировать удаление товара из корзины, изменение количества товара в корзине и т.д.
 
