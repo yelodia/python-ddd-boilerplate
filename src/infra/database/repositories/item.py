@@ -20,7 +20,7 @@ class SqlItemRepository(ItemRepository):
             raise ItemNotFoundError(f"Item with id {item_id} not found")
         return self._to_domain(item)
 
-    async def get_all(self, offset: int = 0, limit: int = 20) -> list[ItemEntity]:
+    async def get_slice(self, offset: int = 0, limit: int = 20) -> list[ItemEntity]:
         result = await self.session.execute(select(ItemORM).offset(offset).limit(limit))
         return [self._to_domain(i) for i in result.scalars().all()]
 

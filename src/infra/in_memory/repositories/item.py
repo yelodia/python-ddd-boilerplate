@@ -15,7 +15,7 @@ class InMemoryItemRepository(ItemRepository):
             raise ItemNotFoundError(f"Item with ID {item_id} not found")
         return item
 
-    async def get_all(self, offset: int = 0, limit: int = 20) -> list[Item]:
+    async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Item]:
         items = sorted(self._items.values(), key=lambda i: i.id)
         return items[offset:offset + limit]
 

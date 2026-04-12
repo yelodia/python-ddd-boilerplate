@@ -19,7 +19,7 @@ class ShowAllItemsUseCase(UseCase):
         self._repo: ItemRepository = repo
 
     async def execute(self, cmd: ShowAllItemsCmd) -> list[Item]:
-        return await self._repo.get_all(cmd.offset, cmd.limit)
+        return await self._repo.get_slice(cmd.offset, cmd.limit)
 
 
 class GetItemUseCase(UseCase):

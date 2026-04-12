@@ -26,7 +26,7 @@ class JsonItemRepository(ItemRepository):
             raise ItemNotFoundError(f"Item with ID {item_id} not found")
         return self._to_domain(item)
 
-    async def get_all(self, offset: int = 0, limit: int = 20) -> list[Item]:
+    async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Item]:
         return [self._to_domain(i) for i in (await self._load())[offset: offset + limit]]
 
     async def create(self, item: Item) -> None:

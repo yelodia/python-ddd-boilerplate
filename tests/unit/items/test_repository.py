@@ -1,4 +1,5 @@
 """Contract tests: one test suite, multiple repository implementations."""
+# FIXME требует актуализации - интерфейс репозитория был изменен!
 
 import pytest
 
@@ -39,14 +40,14 @@ async def test_get_by_id_not_found(repo: ItemRepository) -> None:
 async def test_get_all(repo: ItemRepository) -> None:
     await repo.create(title="A", description=None)
     await repo.create(title="B", description=None)
-    items = await repo.get_all(offset=0, limit=20)
+    items = await repo.get_slice(offset=0, limit=20)
     assert len(items) == 2
 
 
 async def test_get_all_with_offset(repo: ItemRepository) -> None:
     for i in range(5):
         await repo.create(title=f"Item {i}", description=None)
-    items = await repo.get_all(offset=2, limit=2)
+    items = await repo.get_slice(offset=2, limit=2)
     assert len(items) == 2
 
 
