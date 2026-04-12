@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -9,8 +10,19 @@ from infra.json_storage.repositories._base_class import JsonRepositoryBase
 
 
 class ProductInStorage(BaseModel):
-    # типа, симулякр ORM-модельки - нужен просто чтобы поменьше возиться со словарями
-    # должен предъявлять требования к полям не строже, чем доменная сущность
+    """
+    Симулякр ORM-модельки - используется здесь только для того, чтобы чуть меньше возиться со словарями.
+
+    Как и настоящие ORM - должен предъявлять требования к полям не строже, чем доменная сущность.
+
+    Дефолтные значения могут быть заданы только для тех полей, которые могут отсутствовать в хранилище.
+    Например, если хранилище не успело мигрировать или это особенность самого хранилища - просто не выдавать поле,
+    если его значение None.
+
+    "Чинить" данные на лету - не самая лучшая идея с точки зрения DDD, но в редких случаях
+    это может быть оправдано. Например, чтобы при восстановлении доменного объекта из raw-данных быть уверенным,
+    что полю X будет передано явное значение None, а не "данных для поля X нет => запуск дефолтной фабрики поля X".
+    """
     id: int
     name: str
     price: float
@@ -25,11 +37,11 @@ class JsonProductRepository(ProductRepository, JsonRepositoryBase):
     async def get_by_id(self, product_id: int) -> Product:
         table = await self._load()
 
-        product = next((x for x in table.data if x["id"] == product_id), None)
-        if not product:
+        raw_product = next((x for x in table.data if x["id"] == product_id), None)
+        if not raw_product:
             raise ProductNotFoundError(f"Product with ID {product_id} not found")
 
-        return self._to_domain(ProductInStorage(**product))
+        return self._to_domain(ProductInStorage(**raw_product))
 
     async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Product]:
         table = await self._load()
@@ -99,11 +111,25 @@ class JsonProductRepository(ProductRepository, JsonRepositoryBase):
 
 
 class CartInStorage(BaseModel):
-    # типа, симулякр ORM-модельки - нужен просто чтобы поменьше возиться со словарями
-    # должен предъявлять требования к полям не строже, чем доменная сущность
+    """
+    Симулякр ORM-модельки - используется здесь только для того, чтобы чуть меньше возиться со словарями.
+
+    Как и настоящие ORM - должен предъявлять требования к полям не строже, чем доменная сущность.
+
+    Дефолтные значения могут быть заданы только для тех полей, которые могут отсутствовать в хранилище.
+    Например, если хранилище не успело мигрировать или это особенность самого хранилища - просто не выдавать поле,
+    если его значение None.
+
+    "Чинить" данные на лету - не самая лучшая идея с точки зрения DDD, но в редких случаях
+    это может быть оправдано. Например, чтобы при восстановлении доменного объекта из raw-данных быть уверенным,
+    что полю X будет передано явное значение None, а не "данных для поля X нет => запуск дефолтной фабрики поля X".
+
+    P.S.: для created_at используется строковый ISO формат даты, т.к. в JSON нет аналога datetime.
+    """
     id: int
-    items: list[CartItemInStorage] = []
-    delivery_address: DeliveryAddressInStorage | None = None
+    items: list[CartItemInStorage]
+    delivery_address: DeliveryAddressInStorage | None
+    created_at: str | None = None
 
 
 class CartItemInStorage(BaseModel):
@@ -127,11 +153,11 @@ class JsonCartRepository(CartRepository, JsonRepositoryBase):
     async def get_by_id(self, cart_id: int) -> Cart:
         table = await self._load()
 
-        cart = next((x for x in table.data if x["id"] == cart_id), None)
-        if not cart:
+        raw_cart = next((x for x in table.data if x["id"] == cart_id), None)
+        if not raw_cart:
             raise CartNotFoundError(f"Cart with ID {cart_id} not found")
 
-        return self._to_domain(CartInStorage(**cart))
+        return self._to_domain(CartInStorage(**raw_cart))
 
     async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Cart]:
         table = await self._load()
@@ -196,6 +222,8 @@ class JsonCartRepository(CartRepository, JsonRepositoryBase):
                 house=record.delivery_address.house,
                 apartment=record.delivery_address.apartment,
             ) if record.delivery_address else None,
+            created_at=datetime.fromisoformat(record.created_at) if record.created_at else None,
+            # fromisoformat() до Python 3.11 не понимает суффикс Z (только +00:00)!
         )
 
     @staticmethod
@@ -213,5 +241,6 @@ class JsonCartRepository(CartRepository, JsonRepositoryBase):
                 street=cart.delivery_address.street,
                 house=cart.delivery_address.house,
                 apartment=cart.delivery_address.apartment,
-            ) if cart.delivery_address else None
+            ) if cart.delivery_address else None,
+            created_at=cart.created_at.isoformat() if cart.created_at else None,
         )

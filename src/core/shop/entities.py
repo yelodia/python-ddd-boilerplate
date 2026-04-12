@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
 from common.entity_base import Entity, Aggregate, ValueObject
 from core.shop.execptions import WrongCartItemPcsError, CartIsFullError, BadDeliveryAddressError
@@ -26,6 +27,7 @@ class Cart(Aggregate):
 
     items: list[CartItem] = field(default_factory=list)
     delivery_address: DeliveryAddress | None = None
+    created_at: datetime | None = field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
     @property
     def total_price(self) -> float:
