@@ -1,5 +1,6 @@
 import structlog
 
+from application.event_bus_interface import EventBus
 from application.event_handler_base import EventHandler
 from application.use_case_base import UowFactory
 from core.shop.events import (
@@ -23,9 +24,10 @@ class NewCartCreatedHandler(EventHandler):
 class ProductWasAddedToCartHandler(EventHandler):
     """Уменьшает остаток товара на полке, когда покупатель кладёт его в корзину."""
 
-    def __init__(self, repo: ProductRepository, uow: UowFactory):
+    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
         self._repo = repo
         self._uow = uow
+        self._event_bus = event_bus
 
     async def handle(self, event: ProductWasAddedToCart) -> None:
         async with self._uow():
@@ -33,21 +35,28 @@ class ProductWasAddedToCartHandler(EventHandler):
             product.take_from_shelf(event.pcs)
             await self._repo.update(product)
 
+        for product_event in product._events:
+            await self._event_bus.publish(product_event)
+
         logger.debug(event)
 
 
 class ProductWasRemovedFromCartHandler(EventHandler):
     """Возвращает товар на полку, когда покупатель убирает его из корзины."""
 
-    def __init__(self, repo: ProductRepository, uow: UowFactory):
+    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
         self._repo = repo
         self._uow = uow
+        self._event_bus = event_bus
 
     async def handle(self, event: ProductWasRemovedFromCart) -> None:
         async with self._uow():
             product = await self._repo.get_by_id(event.product_id)
             product.return_to_shelf(event.pcs)
             await self._repo.update(product)
+
+        for product_event in product._events:
+            await self._event_bus.publish(product_event)
 
         logger.debug(event)
 

@@ -27,6 +27,7 @@ class ProductInStorage(BaseModel):
     name: str
     price: float
     description: str
+    stock: int = 0  # дефолт 0 — на случай старых записей без этого поля
 
 
 class JsonProductRepository(ProductRepository, JsonRepositoryBase):
@@ -67,6 +68,7 @@ class JsonProductRepository(ProductRepository, JsonRepositoryBase):
             name=product.name,
             price=product.price,
             description=product.description,
+            stock=product.stock,
         )
 
         table.data.append(record.model_dump(mode='json'))
@@ -85,6 +87,7 @@ class JsonProductRepository(ProductRepository, JsonRepositoryBase):
             name=product.name,
             price=product.price,
             description=product.description,
+            stock=product.stock,
         ).model_dump(mode='json')
 
         for idx, record in enumerate(table.data):
@@ -107,6 +110,7 @@ class JsonProductRepository(ProductRepository, JsonRepositoryBase):
             name=record.name,
             price=record.price,
             description=record.description,
+            stock=record.stock,
         )
 
 
