@@ -1,16 +1,47 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from core.entity_base import Entity, Aggregate, ValueObject
-from core.shop.events import ProductWasAddedToCart, ProductWasRemovedFromCart, CartWasCleared
-from core.shop.exceptions import WrongCartItemPcsError, CartIsFullError, BadDeliveryAddressError, ProductNotFoundError
+from core.entity_base import Aggregate, ValueObject
+from core.shop.events import (
+    ProductWasAddedToCart,
+    ProductWasRemovedFromCart,
+    CartWasCleared,
+    ProductWasTakenFromShelf,
+    ProductWasReturnedToShelf,
+)
+from core.shop.exceptions import WrongCartItemPcsError, CartIsFullError, BadDeliveryAddressError, ProductNotFoundError, \
+    NotEnoughStockError
 
 
 @dataclass(kw_only=True)
-class Product(Entity):  # товар на полке магазина / товар на витрине
+class Product(Aggregate):  # товар на полке магазина / товар на витрине
     name: str
     price: float
     description: str
+    stock: int = 0  # количество единиц товара на полке
+    _events: list = field(default_factory=list, init=False, repr=False)
+
+    def __post_init__(self):
+        if self.stock < 0:
+            raise ValueError('Количество товара на полке не может быть отрицательным')
+
+    def take_from_shelf(self, pcs: int) -> None:
+        """Уменьшает остаток на полке (покупатель положил товар в корзину)."""
+        if pcs < 1:
+            raise ValueError('Количество должно быть не менее 1')
+        if self.stock < pcs:
+            raise NotEnoughStockError(
+                f'Недостаточно товара на полке: запрошено {pcs}, доступно {self.stock}'
+            )
+        self.stock -= pcs
+        self._events.append(ProductWasTakenFromShelf(product_id=self.id, pcs=pcs))
+
+    def return_to_shelf(self, pcs: int) -> None:
+        """Увеличивает остаток на полке (покупатель убрал товар из корзины)."""
+        if pcs < 1:
+            raise ValueError('Количество должно быть не менее 1')
+        self.stock += pcs
+        self._events.append(ProductWasReturnedToShelf(product_id=self.id, pcs=pcs))
 
 
 @dataclass

@@ -4,12 +4,15 @@ from application.shop.event_handlers import (
     ProductWasAddedToCartHandler,
     ProductWasRemovedFromCartHandler,
     CartWasClearedHandler,
+    ProductShelfEventHandler,
 )
 from core.shop.events import (
     NewCartCreated,
     ProductWasAddedToCart,
     ProductWasRemovedFromCart,
     CartWasCleared,
+    ProductWasTakenFromShelf,
+    ProductWasReturnedToShelf,
 )
 
 """
@@ -37,4 +40,6 @@ EVENT_HANDLERS: EventHandlersRegistry = {
     ProductWasAddedToCart: [ProductWasAddedToCartHandler],
     ProductWasRemovedFromCart: [ProductWasRemovedFromCartHandler],
     CartWasCleared: [CartWasClearedHandler],
+    ProductWasTakenFromShelf: [ProductShelfEventHandler],
+    ProductWasReturnedToShelf: [ProductShelfEventHandler],
 }

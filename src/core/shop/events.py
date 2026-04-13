@@ -25,3 +25,15 @@ class ProductWasRemovedFromCart(DomainEvent):
 @dataclass(frozen=True)
 class CartWasCleared(DomainEvent):
     cart_id: int
+
+
+@dataclass(frozen=True)
+class ProductWasTakenFromShelf(DomainEvent):
+    product_id: int
+    pcs: int
+
+
+@dataclass(frozen=True)
+class ProductWasReturnedToShelf(DomainEvent):
+    product_id: int
+    pcs: int

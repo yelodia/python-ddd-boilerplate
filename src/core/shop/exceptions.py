@@ -17,5 +17,9 @@ class ProductNotFoundError(NotFoundError):
     pass
 
 
+class NotEnoughStockError(DomainError):
+    pass
+
+
 class CartNotFoundError(NotFoundError):
     pass
