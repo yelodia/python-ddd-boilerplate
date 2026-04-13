@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from core.entity_base import Aggregate, ValueObject
+from core.entity_base import Aggregate, ValueObject, Entity
 from core.shop.events import (
     ProductWasAddedToCart,
     ProductWasRemovedFromCart,
@@ -14,7 +14,7 @@ from core.shop.exceptions import WrongCartItemPcsError, CartIsFullError, BadDeli
 
 
 @dataclass(kw_only=True)
-class Product(Aggregate):  # товар на полке магазина / товар на витрине
+class Product(Entity):  # товар на полке магазина / товар на витрине
     name: str
     price: float
     description: str
@@ -88,6 +88,28 @@ class Cart(Aggregate):
             existed_item.add(pcs)
 
         self._events.append(ProductWasAddedToCart(product_id=product.id, cart_id=self.id, pcs=pcs))
+
+    """
+    Альтернативный вариант, как можно реализовать бизнес-процедуру "положить товар в корзину":
+    - корзине _кто-то_ просто сообщает ID товара, его цену и количество
+    - корзина по прежнему проверяет собственные инварианты, но уже ничего не знает о товаре, просто требует 
+    предоставить ей все необходимые данные.
+    
+    Остальную часть примера и бизнес-логики см. в сервисе Shopping.
+    """
+
+    def alternate_put_product(self, product_id: int, price: float, pcs: int) -> None:
+        if len(self.items) > 100:
+            raise CartIsFullError('Корзина переполнена!')
+
+        existed_item = next((x for x in self.items if x.product_id == product_id), None)
+
+        if not existed_item:
+            cart_item = CartItem(product_id=product_id, price=price, pcs=pcs)
+            self.items.append(cart_item)
+
+        if existed_item:
+            existed_item.add(pcs)
 
     # TODO имплементировать уменьшение количества товара в корзине
 

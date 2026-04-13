@@ -11,8 +11,9 @@ from application.shop.commands import (
 )
 from application.use_case_base import UseCase, UowFactory
 from core.shop.entities import Product, Cart
-from core.shop.events import NewCartCreated
+from core.shop.events import NewCartCreated, ProductWasAddedToCart
 from core.shop.repo_interfaces import ProductRepository, CartRepository
+from core.shop.services import Shopping
 
 
 class ShowAllProductsUseCase(UseCase):
@@ -79,6 +80,21 @@ class CreateEmptyCartUseCase(UseCase):
 
 
 class PutProductToCartUseCase(UseCase):
+    """
+    Образец альтернативной организации юзкейса, когда бизнес-логика вынесена в доменный сервис (Shopping).
+     - юзкейс всё ещё отвечает за оркестрацию:
+        - добыть штуки из хранилища
+        - пнуть сервис и дать ему штуки, чтобы он выполнил какую-то логику
+        - не глядя сохранить штуки обратно в хранилище (ведь сервис мог поменять их состояния):
+            - обязательно обернуть в транзакцию, ведь даже внутри одной штуки могут быть;
+            задействованы несколько таблиц БД, например;
+        - опубликовать в шину события:
+            - в простых случаях событий может и не быть вовсе;
+            - в случаях посложнее - может быть достаточно одного события в конце юзкейса;
+            - в сложных случаях - юзкейс должен собрать события со всех потроганных сущностей;
+            и опубликовать их в шину, потому что сущности тоже могут генерировать события!
+    - абсолютно вся бизнес-логика вынесена в доменные сервисы и сущности
+    """
     def __init__(
             self,
             cart_repo: CartRepository,
@@ -92,16 +108,15 @@ class PutProductToCartUseCase(UseCase):
         self.event_bus = event_bus
 
     async def execute(self, cmd: PutProductToCartCmd) -> Cart:
+        cart = await self.cart_repo.get_by_id(cmd.cart_id)
+        product = await self.product_repo.get_by_id(cmd.product_id)
+
+        Shopping.put_product_to_cart(product, cart, cmd.pcs)
+        await self.event_bus.publish(ProductWasAddedToCart(product_id=product.id, cart_id=cart.id, pcs=cmd.pcs))
+
         async with self.uow():
-            cart = await self.cart_repo.get_by_id(cmd.cart_id)
-            product = await self.product_repo.get_by_id(cmd.product_id)
-
-            cart.put_product(product, cmd.pcs)
-
             await self.cart_repo.update(cart)
-
-        for event in cart._events:
-            await self.event_bus.publish(event)
+            await self.product_repo.update(product)
 
         await self.event_bus.dispatch_pending()
 
