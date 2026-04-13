@@ -1,7 +1,7 @@
 from typing import TypeVar, ClassVar, get_type_hints, AsyncContextManager
 
 from application.event_bus_interface import EventBus
-from application.event_bus_stuff import handlers_map_factory
+from application.event_handler_base import EventHandler
 from application.uow_interface import UnitOfWork
 from application.use_case_base import UseCase, UowFactory
 from config import settings, SQL, JSON, RAM
@@ -77,9 +77,8 @@ class UseCasesBuilder:
 
         raise UnknownStorageError(f"Unsupported storage backend: {settings.storage_backend}")
 
-    def get_use_case(self, use_case_class: type[UseCase]) -> UseCase:
-        hints = get_type_hints(use_case_class.__init__)  # dict[str, type]
-
+    def _inject_params(self, cls: type, *, allow_event_bus: bool = True) -> dict:
+        hints = get_type_hints(cls.__init__)  # dict[str, type]
         input_params = {}
         for param_name, annotation in hints.items():
             # get_type_hints() включает в словарь возвращаемый тип под ключом 'return'. Без этой проверки цикл
@@ -95,17 +94,24 @@ class UseCasesBuilder:
                 input_params[param_name] = self.get_entity_repo(annotation)
                 continue
 
-            if annotation is EventBus:
+            if annotation is EventBus and allow_event_bus:
                 input_params[param_name] = self.get_event_bus()
                 continue
 
             raise UsecaseUnknownParamError(
-                f"Unknown parameter '{param_name}' with type '{annotation}' in use case '{use_case_class.__name__}'")
+                f"Unknown parameter '{param_name}' with type '{annotation}' in '{cls.__name__}'"
+            )
 
-        return use_case_class(**input_params)
+        return input_params
+
+    def get_use_case(self, use_case_class: type[UseCase]) -> UseCase:
+        return use_case_class(**self._inject_params(use_case_class))
         # FIXME рекомендовано полечить неким cast'ом, но я хз куда это пихать
         #  from typing import cast
         #  return cast(UseCase, use_case_class(**input_params))
+
+    def build_handler(self, handler_class: type[EventHandler]) -> EventHandler:
+        return handler_class(**self._inject_params(handler_class, allow_event_bus=False))
 
     @staticmethod
     def get_uow() -> AsyncContextManager[UnitOfWork]:
@@ -120,6 +126,6 @@ class UseCasesBuilder:
 
         raise UnknownStorageError(f"Unsupported storage backend: {settings.storage_backend}")
 
-    @staticmethod
-    def get_event_bus() -> EventBus:
-        return async_event_bus_factory(handlers_map_factory())
+    def get_event_bus(self) -> EventBus:
+        from infra.event_handlers_registry import EVENT_HANDLERS
+        return async_event_bus_factory(EVENT_HANDLERS, self.build_handler)

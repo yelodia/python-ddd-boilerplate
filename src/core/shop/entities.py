@@ -52,10 +52,13 @@ class Cart(Aggregate):
         if not existed_item:
             cart_item = CartItem(product_id=product.id, price=product.price, pcs=pcs)
             self.items.append(cart_item)
-            return
 
-        existed_item.add(pcs)
+        if existed_item:
+            existed_item.add(pcs)
+
         self._events.append(ProductWasAddedToCart(product_id=product.id, cart_id=self.id, pcs=pcs))
+
+    # TODO имплементировать уменьшение количества товара в корзине
 
     def remove_product(self, product_id: int) -> None:
         found_item = next((x for x in self.items if x.product_id == product_id), None)
@@ -66,12 +69,11 @@ class Cart(Aggregate):
         self.items.remove(found_item)
         self._events.append(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=found_item.pcs))
 
-
     def clear(self) -> None:
+        for product_id, pcs in [(item.product_id, item.pcs) for item in self.items]:
+            self._events.append(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=pcs))
         self.items = []
         self._events.append(CartWasCleared(cart_id=self.id))
-
-    # TODO имплементировать удаление товара из корзины, изменение количества товара в корзине и т.д.
 
     def update_delivery_address(self, delivery_address: DeliveryAddress) -> None:
         if not issubclass(type(delivery_address), DeliveryAddress):
@@ -100,7 +102,7 @@ class CartItem:
 
         self.pcs += pcs
 
-    # TODO имплементировать изменение количества товара в корзине
+    # TODO имплементировать уменьшение количества товара в корзине
 
 
 @dataclass(frozen=True)

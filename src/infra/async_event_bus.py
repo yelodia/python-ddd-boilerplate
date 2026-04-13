@@ -1,6 +1,11 @@
+from typing import Callable
+
 from application.event_bus_interface import EventBus
-from application.event_bus_stuff import EventsRegister
+from application.event_bus_stuff import EventHandlersRegistry
+from application.event_handler_base import EventHandler
 from core.domain_events import DomainEvent
+
+HandlerFactory = Callable[[type[EventHandler]], EventHandler]
 
 
 class AsyncInProcessEventBus(EventBus):
@@ -17,19 +22,10 @@ class AsyncInProcessEventBus(EventBus):
     Потому что в них может содержаться тяжёлый I/O (работа с ФС, БД, http-запросы, etc) и вообще что угодно.
     """
 
-    def __init__(self, handlers_map: EventsRegister):
-        self.handlers_map: EventsRegister = handlers_map
+    def __init__(self, handlers_registry: EventHandlersRegistry, handler_factory: HandlerFactory):
+        self.handlers_registry = handlers_registry
+        self.handler_factory = handler_factory
         self._queue: list[DomainEvent] = []
-
-    @classmethod
-    def do_something(cls, *args, **kwargs) -> None:
-        """
-        FIXME глупейшая заглушка-формальность, в которую можно складировать что угодно.
-         Например, импорты хэндлеров в main.py только ради того,
-         чтобы IDE не сносила импорт как неиспользуемый, а сами хэндлеры за счёт
-         наличия таких импортов в main.py - зарегистрировались -_-
-        """
-        pass
 
     async def publish(self, event: DomainEvent) -> None:
         self._queue.append(event)
@@ -37,13 +33,13 @@ class AsyncInProcessEventBus(EventBus):
     async def dispatch_pending(self) -> None:
         while self._queue:
             event = self._queue.pop(0)
-
-            subscribed_handlers = self.handlers_map.get(type(event), [])
-            # subscribed_handlers = self._handlers_getter(type(event))
-
-            for handler in subscribed_handlers:
-                await handler(event)
+            for handler_cls in self.handlers_registry.get(type(event), []):
+                handler = self.handler_factory(handler_cls)
+                await handler.handle(event)
 
 
-def async_event_bus_factory(handlers_map: EventsRegister) -> AsyncInProcessEventBus:
-    return AsyncInProcessEventBus(handlers_map=handlers_map)
+def async_event_bus_factory(
+        handlers_registry: EventHandlersRegistry,
+        handler_factory: HandlerFactory,
+) -> AsyncInProcessEventBus:
+    return AsyncInProcessEventBus(handlers_registry=handlers_registry, handler_factory=handler_factory)
