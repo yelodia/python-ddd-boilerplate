@@ -25,19 +25,23 @@ RepoRegistry = dict[type, type]
 
 class UseCasesBuilder:
     """
-    Этот класс - фабрика для юзкейсов. Он знает, какие репозитории, UoW и прочие штуки нужны для каждого юзкейса,
-    однако он может читать сигнатуры их конструкторов и самостоятельно подготавливать к работе объекты нужных классов.
+    Этот класс - фабрика подготовки юзкейсов и хэндлеров. Он изначально не знает, какие репозитории, UoW и прочие штуки
+    нужны для каждого юзкейса или обработчика события, однако он может читать сигнатуры их конструкторов и
+    самостоятельно подготавливать к работе объекты нужных классов.
 
-    При появлении в системе нового репозитория (в любом домене) - необходимо его "зарегистрировать".
-    Т.е. связать абстрактный интерфейс репозитория с его конкретной реализацией для каждого из поддерживаемых типов
+    Также он является местом регистрации разных реализаций репозиториев, потому что какую из реализаций использовать -
+    указывается в глобальных настройках (или вовсе в .env), а юзкейсы и хэндлеры вообще ничего не должны знать про это.
+
+    При появлении в системе нового репозитория (в любом домене) - необходимо его "зарегистрировать", т.е.
+    связать абстрактный интерфейс репозитория с его конкретной реализацией для каждого из поддерживаемых типов
     хранилищ (SQL, JSON, RAM) в нижеследующих словарях.
 
-    Словарь - вид хранилища, ключ - интерфейс репозитория, значение - класс его реализации под этот вид хранилища.
+    Словарь - вид хранилища; ключ - интерфейс репозитория; значение - класс его реализации под этот вид хранилища.
 
-    Сами юзкейсы сюда тащить не нужно! Этим занимаются конечные точки (эндпоинты) и вьюхи:
-        - импортируют откуда-то класс юзкейса (БЕЗ ЕГО ИНИЦИАЛИЗАЦИИ!)
-        - скармливают его билдеру в метод `.get_use_case()` (напрямую или через Depends - не важно)
-        - билдер выполняет свою работу и возвращает уже готовый, полностью укомплектованный экземпляр юзкейса
+    Сами юзкейсы и хэндлеры сюда тащить не нужно! Этим занимаются конечные точки (эндпоинты), вьюхи или кто-то ещё:
+        - сами себе импортируют откуда-то класс юзкейса / хэндлера (БЕЗ ЕГО ИНИЦИАЛИЗАЦИИ!)
+        - сами скармливают его билдеру в `get_use_case()` или '.build_handler()' (напрямую или через Depends - не суть)
+        - билдер выполняет свою работу и возвращает уже готовый, полностью укомплектованный экземпляр юзкейса / хэндлера
         - ...
         - PROFIT!
     """
@@ -60,22 +64,6 @@ class UseCasesBuilder:
     def _all_repo_interfaces(cls) -> tuple[type, ...]:
         all_interfaces = cls.SQL.keys() | cls.JSON.keys() | cls.RAM.keys()
         return tuple(all_interfaces)
-
-    def get_entity_repo(self, contract: type[S]) -> S:
-        # Don't use self.ANY_DICT_OF_STORAGES.get() method here!
-        # We want it to raise human-readable KeyError, but not a stupid "TypeError: 'NoneType' is not callable"
-        # if contract is not declared in storage backend! Or just impement some custom error handling he if you want.
-
-        if settings.storage_backend == SQL:
-            return self.SQL[contract](SessionFactory)
-
-        if settings.storage_backend == JSON:
-            return self.JSON[contract](settings.json_data_dir)
-
-        if settings.storage_backend == RAM:
-            return self.RAM[contract]()
-
-        raise UnknownStorageError(f"Unsupported storage backend: {settings.storage_backend}")
 
     def _inject_params(self, cls: type, *, allow_event_bus: bool = True) -> dict:
         hints = get_type_hints(cls.__init__)  # dict[str, type]
@@ -112,6 +100,25 @@ class UseCasesBuilder:
 
     def build_handler(self, handler_class: type[EventHandler]) -> EventHandler:
         return handler_class(**self._inject_params(handler_class, allow_event_bus=False))
+        # FIXME рекомендовано полечить неким cast'ом, но я хз куда это пихать
+        #  from typing import cast
+        #  return cast(EventHandler, handler_class(**input_params))
+
+    def get_entity_repo(self, contract: type[S]) -> S:
+        # Don't use self.ANY_DICT_OF_STORAGES.get() method here!
+        # We want it to raise human-readable KeyError, but not a stupid "TypeError: 'NoneType' is not callable"
+        # if contract is not declared in storage backend! Or just impement some custom error handling he if you want.
+
+        if settings.storage_backend == SQL:
+            return self.SQL[contract](SessionFactory)
+
+        if settings.storage_backend == JSON:
+            return self.JSON[contract](settings.json_data_dir)
+
+        if settings.storage_backend == RAM:
+            return self.RAM[contract]()
+
+        raise UnknownStorageError(f"Unsupported storage backend: {settings.storage_backend}")
 
     @staticmethod
     def get_uow() -> AsyncContextManager[UnitOfWork]:
