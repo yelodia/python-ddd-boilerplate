@@ -1,4 +1,4 @@
-from application.event_bus_stuff import EventHandlersRegistry
+from application.event_bus_interface import EventHandlersRegistry
 from application.shop.event_handlers import (
     NewCartCreatedHandler,
     ProductWasAddedToCartHandler,

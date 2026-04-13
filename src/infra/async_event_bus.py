@@ -1,7 +1,6 @@
 from typing import Callable
 
-from application.event_bus_interface import EventBus
-from application.event_bus_stuff import EventHandlersRegistry
+from application.event_bus_interface import EventBus, EventHandlersRegistry
 from application.event_handler_base import EventHandler
 from core.domain_events import DomainEvent
 
