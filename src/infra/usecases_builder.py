@@ -65,7 +65,7 @@ class UseCasesBuilder:
         all_interfaces = cls.SQL.keys() | cls.JSON.keys() | cls.RAM.keys()
         return tuple(all_interfaces)
 
-    def _inject_params(self, cls: type, *, allow_event_bus: bool = True) -> dict:
+    def _inject_params(self, cls: type, *, event_bus: EventBus | None = None) -> dict:
         hints = get_type_hints(cls.__init__)  # dict[str, type]
         input_params = {}
         for param_name, annotation in hints.items():
@@ -82,8 +82,10 @@ class UseCasesBuilder:
                 input_params[param_name] = self.get_entity_repo(annotation)
                 continue
 
-            if annotation is EventBus and allow_event_bus:
-                input_params[param_name] = self.get_event_bus()
+            if annotation is EventBus:
+                # Юзкейс получает свежую шину; хэндлер — ту же шину, через которую пришло событие,
+                # чтобы его новые события попали в ту же очередь и были обработаны в том же dispatch_pending().
+                input_params[param_name] = event_bus if event_bus is not None else self.get_event_bus()
                 continue
 
             raise UsecaseUnknownParamError(
@@ -98,8 +100,8 @@ class UseCasesBuilder:
         #  from typing import cast
         #  return cast(UseCase, use_case_class(**input_params))
 
-    def build_handler(self, handler_class: type[EventHandler]) -> EventHandler:
-        return handler_class(**self._inject_params(handler_class, allow_event_bus=False))
+    def build_handler(self, handler_class: type[EventHandler], event_bus: EventBus) -> EventHandler:
+        return handler_class(**self._inject_params(handler_class, event_bus=event_bus))
         # FIXME рекомендовано полечить неким cast'ом, но я хз куда это пихать
         #  from typing import cast
         #  return cast(EventHandler, handler_class(**input_params))

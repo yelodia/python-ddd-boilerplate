@@ -4,7 +4,9 @@ from application.event_bus_interface import EventBus, EventHandlersRegistry
 from application.event_handler_base import EventHandler
 from core.domain_events import DomainEvent
 
-HandlerFactory = Callable[[type[EventHandler]], EventHandler]
+# Фабрика хэндлеров получает класс хэндлера и текущий экземпляр шины,
+# чтобы хэндлер мог публиковать свои события в ту же очередь.
+HandlerFactory = Callable[[type[EventHandler], EventBus], EventHandler]
 
 
 class AsyncInProcessEventBus(EventBus):
@@ -19,6 +21,9 @@ class AsyncInProcessEventBus(EventBus):
 
     А вот метод для публикации - обязательно должен быть async/await, чтобы обработчики не блокировали поток!
     Потому что в них может содержаться тяжёлый I/O (работа с ФС, БД, http-запросы, etc) и вообще что угодно.
+
+    Цепочки событий поддерживаются: если хэндлер публикует новое событие через ту же шину,
+    оно попадает в ту же очередь и будет обработано в рамках того же вызова dispatch_pending().
     """
 
     def __init__(self, handlers_registry: EventHandlersRegistry, handler_factory: HandlerFactory):
@@ -33,7 +38,7 @@ class AsyncInProcessEventBus(EventBus):
         while self._queue:
             event = self._queue.pop(0)
             for handler_cls in self.handlers_registry.get(type(event), []):
-                handler = self.handler_factory(handler_cls)
+                handler = self.handler_factory(handler_cls, self)  # передаём себя, чтобы хэндлер мог пушить события
                 await handler.handle(event)
 
 
