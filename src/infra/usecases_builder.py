@@ -1,5 +1,7 @@
 from typing import TypeVar, ClassVar, get_type_hints, AsyncContextManager
 
+from arq.connections import ArqRedis
+
 from application.event_bus_interface import EventBus
 from application.event_handler_base import EventHandler
 from application.uow_interface import UnitOfWork
@@ -8,7 +10,7 @@ from config import settings, SQL, JSON, RAM
 from core.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from core.items.repo_interfaces import ItemRepository
 from core.shop.repo_interfaces import ProductRepository, CartRepository
-from infra.async_event_bus import async_event_bus_factory
+from infra.event_bus.in_process import async_event_bus_factory
 from infra.storage.database.basic_stuff import SessionFactory
 from infra.storage.database.repositories.item import SqlItemRepository
 from infra.storage.database.uow import sql_unit_of_work
