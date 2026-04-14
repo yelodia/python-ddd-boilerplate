@@ -11,7 +11,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 def setup_tracing(app: FastAPI | None = None) -> None:
     from config import get_settings
-    from infra.storage.database.basic_stuff import engine
+    from infra.storage.database.basic_stuff import get_engine
 
     settings = get_settings()
     if not settings.otel_enabled:
@@ -30,6 +30,7 @@ def setup_tracing(app: FastAPI | None = None) -> None:
             app,
             excluded_urls="health,metrics",
         )
+    engine = get_engine()
     if engine is not None:
         SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
     HTTPXClientInstrumentor().instrument()

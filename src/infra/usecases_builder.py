@@ -10,8 +10,8 @@ from config import settings, SQL, JSON, RAM
 from core.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from core.items.repo_interfaces import ItemRepository
 from core.shop.repo_interfaces import ProductRepository, CartRepository
-from infra.event_bus.in_process import async_event_bus_factory
-from infra.storage.database.basic_stuff import SessionFactory
+from infra.event_bus.async_in_main_process import async_event_bus_factory
+from infra.storage.database.basic_stuff import get_session_factory
 from infra.storage.database.repositories.item import SqlItemRepository
 from infra.storage.database.uow import sql_unit_of_work
 from infra.storage.in_memory.repositories.item import InMemoryItemRepository
@@ -47,6 +47,12 @@ class UseCasesBuilder:
         - ...
         - PROFIT!
     """
+
+    def __init__(self, arq_client: ArqRedis | None = None):
+        # Если передан arq_client — get_event_bus() вернёт AsyncArqEventBus (fire-and-forget через Redis).
+        # Без него — AsyncInProcessEventBus (синхронная обработка событий в рамках текущего запроса).
+        self._arq_client = arq_client
+
     SQL: ClassVar[RepoRegistry] = {
         ItemRepository: SqlItemRepository,
         # TODO не хватает SQL-реализации для ProductRepository и CartRepository!
@@ -114,7 +120,7 @@ class UseCasesBuilder:
         # if contract is not declared in storage backend! Or just impement some custom error handling he if you want.
 
         if settings.storage_backend == SQL:
-            return self.SQL[contract](SessionFactory)
+            return self.SQL[contract](get_session_factory())
 
         if settings.storage_backend == JSON:
             return self.JSON[contract](settings.json_data_dir)
@@ -127,7 +133,7 @@ class UseCasesBuilder:
     @staticmethod
     def get_uow() -> AsyncContextManager[UnitOfWork]:
         if settings.storage_backend == SQL:
-            return sql_unit_of_work(SessionFactory)
+            return sql_unit_of_work(get_session_factory())
 
         if settings.storage_backend == JSON:
             return json_unit_of_work(settings.json_data_dir)
@@ -139,4 +145,7 @@ class UseCasesBuilder:
 
     def get_event_bus(self) -> EventBus:
         from infra.event_handlers_registry import EVENT_HANDLERS
+        if self._arq_client is not None:
+            from infra.event_bus.async_in_arq import AsyncArqEventBus
+            return AsyncArqEventBus(EVENT_HANDLERS, self._arq_client)
         return async_event_bus_factory(EVENT_HANDLERS, self.build_handler)

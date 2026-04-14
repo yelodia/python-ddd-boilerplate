@@ -1,6 +1,8 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from arq import create_pool
+from arq.connections import RedisSettings
 from fastapi import FastAPI, APIRouter
 from pydantic import BaseModel
 
@@ -24,7 +26,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if settings.use_json_storage:
         ensure_json_storage(settings.json_data_dir)
 
+    app.state.arq_pool = await create_pool(RedisSettings.from_dsn(str(settings.redis_url)))
+
     yield
+
+    await app.state.arq_pool.aclose()
 
 
 class HealthResponse(BaseModel):
