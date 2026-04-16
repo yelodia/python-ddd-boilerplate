@@ -125,12 +125,12 @@ class PutProductToCartUseCase(UseCase):
         self.event_bus = event_bus
 
     async def execute(self, cmd: PutProductToCartCmd) -> Cart:
-        cart = await self.cart_repo.get_by_id(cmd.cart_id)
-        product = await self.product_repo.get_by_id(cmd.product_id)
-
-        Shopping.put_product_to_cart(product, cart, cmd.pcs)
-
         async with self.uow():
+            cart = await self.cart_repo.get_by_id(cmd.cart_id)
+            product = await self.product_repo.get_by_id(cmd.product_id)
+
+            Shopping.put_product_to_cart(product, cart, cmd.pcs)
+
             await self.cart_repo.update(cart)
             await self.product_repo.update(product)
 
@@ -153,9 +153,8 @@ class RemoveProductFromCartUseCase(UseCase):
         self.event_bus = event_bus
 
     async def execute(self, cmd: RemoveProductFromCartCmd) -> Cart:
-        cart = await self.cart_repo.get_by_id(cmd.cart_id)
-
         async with self.uow():
+            cart = await self.cart_repo.get_by_id(cmd.cart_id)
             cart.remove_product(cmd.product_id)
             await self.cart_repo.update(cart)
 
@@ -172,9 +171,8 @@ class ClearCartUseCase(UseCase):
         self.event_bus = event_bus
 
     async def execute(self, cmd: ClearCartCmd) -> Cart:
-        cart = await self.cart_repo.get_by_id(cmd.cart_id)
-
         async with self.uow():
+            cart = await self.cart_repo.get_by_id(cmd.cart_id)
             cart.clear()
             await self.cart_repo.update(cart)
 
