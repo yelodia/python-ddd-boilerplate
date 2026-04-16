@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
+    # Reports storage
+    reports_storage_dir: str = "data/reports"
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

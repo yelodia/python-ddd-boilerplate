@@ -1,7 +1,7 @@
 import structlog
 from arq.connections import ArqRedis
 
-from infra.event_bus.async_in_arq import AsyncArqEventBus, deserialize_event
+from infra.event_bus.async_in_arq_worker import AsyncArqEventBus, deserialize_event
 from infra.event_handlers_registry import EVENT_HANDLERS
 from infra.usecases_builder import UseCasesBuilder
 

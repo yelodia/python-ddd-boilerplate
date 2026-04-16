@@ -5,6 +5,7 @@ from application.shop.event_handlers import (
     ProductWasRemovedFromCartHandler,
     CartWasClearedHandler,
     ProductShelfEventHandler,
+    StockReplenishmentRequestedHandler,
 )
 from core.shop.events import (
     NewCartCreated,
@@ -13,6 +14,8 @@ from core.shop.events import (
     CartWasCleared,
     ProductWasTakenFromShelf,
     ProductWasReturnedToShelf,
+    TheMorningHasCome,
+    StockReportRequested,
 )
 
 """
@@ -42,4 +45,6 @@ EVENT_HANDLERS: EventHandlersRegistry = {
     CartWasCleared: [CartWasClearedHandler],
     ProductWasTakenFromShelf: [ProductShelfEventHandler],
     ProductWasReturnedToShelf: [ProductShelfEventHandler],
+    TheMorningHasCome: [StockReplenishmentRequestedHandler],
+    StockReportRequested: [StockReportRequestedHandler],
 }

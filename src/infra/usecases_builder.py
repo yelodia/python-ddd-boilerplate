@@ -4,6 +4,7 @@ from arq.connections import ArqRedis
 
 from application.event_bus_interface import EventBus
 from application.event_handler_base import EventHandler
+from application.reports.report_storage import ReportStorage
 from application.uow_interface import UnitOfWork
 from application.use_case_base import UseCase, UowFactory
 from config import settings, SQL, JSON, RAM
@@ -11,6 +12,7 @@ from core.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from core.items.repo_interfaces import ItemRepository
 from core.shop.repo_interfaces import ProductRepository, CartRepository
 from infra.event_bus.async_in_main_process import async_event_bus_factory
+from infra.reports.csv_report_storage import CsvReportStorage
 from infra.storage.database.basic_stuff import get_session_factory
 from infra.storage.database.repositories.item import SqlItemRepository
 from infra.storage.database.uow import sql_unit_of_work
@@ -96,6 +98,10 @@ class UseCasesBuilder:
                 input_params[param_name] = event_bus if event_bus is not None else self.get_event_bus()
                 continue
 
+            if annotation is ReportStorage:
+                input_params[param_name] = self.get_report_storage()
+                continue
+
             raise UsecaseUnknownParamError(
                 f"Unknown parameter '{param_name}' with type '{annotation}' in '{cls.__name__}'"
             )
@@ -143,9 +149,13 @@ class UseCasesBuilder:
 
         raise UnknownStorageError(f"Unsupported storage backend: {settings.storage_backend}")
 
+    @staticmethod
+    def get_report_storage(self) -> ReportStorage:
+        return CsvReportStorage(settings.reports_storage_dir)
+
     def get_event_bus(self) -> EventBus:
         from infra.event_handlers_registry import EVENT_HANDLERS
         if self._arq_client is not None:
-            from infra.event_bus.async_in_arq import AsyncArqEventBus
+            from infra.event_bus.async_in_arq_worker import AsyncArqEventBus
             return AsyncArqEventBus(EVENT_HANDLERS, self._arq_client)
         return async_event_bus_factory(EVENT_HANDLERS, self.build_handler)

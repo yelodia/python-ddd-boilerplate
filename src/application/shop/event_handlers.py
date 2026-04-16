@@ -10,6 +10,7 @@ from core.shop.events import (
     CartWasCleared,
     ProductWasTakenFromShelf,
     ProductWasReturnedToShelf,
+    TheMorningHasCome,
 )
 from core.shop.repo_interfaces import ProductRepository
 
@@ -71,3 +72,64 @@ class ProductShelfEventHandler(EventHandler):
 
     async def handle(self, event: ProductWasTakenFromShelf | ProductWasReturnedToShelf) -> None:
         logger.debug(event)
+
+
+LOW_STOCK_THRESHOLD = 5  # порог, ниже которого товар считается требующим пополнения
+REPLENISHMENT_TARGET = 20  # до какого значения пополняем остаток
+
+
+class StockReplenishmentRequestedHandler(EventHandler):
+    """Пополняет остатки всех товаров, упавших ниже порогового значения."""
+
+    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
+        self._repo = repo
+        self._uow = uow
+        self._event_bus = event_bus
+
+    async def handle(self, event: TheMorningHasCome) -> None:
+        replenished = []
+        failed = []
+        offset = 0
+        limit = 100
+
+        while True:
+            batch = await self._repo.get_slice(offset=offset, limit=limit)
+            if not batch:
+                break
+
+            for product in batch:
+                if product.stock >= LOW_STOCK_THRESHOLD:
+                    continue
+
+                amount = REPLENISHMENT_TARGET - product.stock
+                try:
+                    async with self._uow():
+                        product.return_to_shelf(amount)
+                        await self._repo.update(product)
+
+                    for product_event in product._events:
+                        await self._event_bus.publish(product_event)
+
+                    replenished.append((product.id, product.name, product.stock))
+                except Exception:
+                    logger.exception(
+                        "не удалось пополнить товар",
+                        product_id=product.id,
+                        name=product.name,
+                    )
+                    failed.append(product.id)
+
+            if len(batch) < limit:
+                break
+            offset += limit
+
+        if replenished:
+            logger.info("пополнение завершено", count=len(replenished))
+            for product_id, name, stock_after in replenished:
+                logger.info("пополнен", product_id=product_id, name=name, stock_after=stock_after)
+
+        if failed:
+            logger.error("часть товаров не удалось пополнить", failed_ids=failed)
+
+        if not replenished and not failed:
+            logger.info("нечего пополнять, все остатки выше порога", threshold=LOW_STOCK_THRESHOLD)

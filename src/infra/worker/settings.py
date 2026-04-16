@@ -4,9 +4,9 @@ from arq import cron
 from arq.connections import RedisSettings, create_pool
 
 from config import settings
+from infra.worker.cron_tasks.stock_replenishment import stock_replenishment_task
+from infra.worker.cron_tasks.stock_report import stock_report_task
 from infra.worker.tasks.domain_event_processor import domain_event_processor
-from infra.worker.tasks.stock_replenishment import stock_replenishment_task
-from infra.worker.tasks.stock_report import stock_report_task
 
 """
 Краткий глоссарий:
