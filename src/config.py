@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     database_max_overflow: int = 20
 
     # Redis
-    redis_url: RedisDsn = "redis://localhost:6379/0"  # type: ignore[assignment]
+    redis_url: RedisDsn = RedisDsn("redis://localhost:6379/0")
 
     # OpenTelemetry
     otel_enabled: bool = False

@@ -9,11 +9,14 @@ LOW_STOCK_THRESHOLD = 5  # порог, ниже которого товар сч
 REPLENISHMENT_TARGET = 20  # до какого значения пополняем остаток
 
 
-async def stock_replenishment_task(ctx: dict) -> None:
+async def stock_replenishment_task(ctx: dict) -> None:  # FIXME non-DDD implementation!
     """
     Обходит все товары и пополняет остаток тех, у кого он опустился ниже порогового значения.
     Каждый товар обновляется в отдельной транзакции — чтобы ошибка по одному не откатила остальные.
     """
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(task="stock_replenishment")
+
     builder = UseCasesBuilder()
     repo = builder.get_entity_repo(ProductRepository)
 
@@ -39,7 +42,7 @@ async def stock_replenishment_task(ctx: dict) -> None:
                 replenished.append((product.id, product.name, product.stock))
             except Exception:
                 logger.exception(
-                    "stock_replenishment: не удалось пополнить товар",
+                    "не удалось пополнить товар",
                     product_id=product.id,
                     name=product.name,
                 )
@@ -50,17 +53,17 @@ async def stock_replenishment_task(ctx: dict) -> None:
         offset += limit
 
     if replenished:
-        logger.info("stock_replenishment: пополнение завершено", count=len(replenished))
+        logger.info("пополнение завершено", count=len(replenished))
         for product_id, name, stock_after in replenished:
             logger.info(
-                "stock_replenishment: пополнен",
+                "пополнен",
                 product_id=product_id,
                 name=name,
                 stock_after=stock_after,
             )
 
     if failed:
-        logger.error("stock_replenishment: часть товаров не удалось пополнить", failed_ids=failed)
+        logger.error("часть товаров не удалось пополнить", failed_ids=failed)
 
     if not replenished and not failed:
-        logger.info("stock_replenishment: нечего пополнять, все остатки выше порога", threshold=LOW_STOCK_THRESHOLD)
+        logger.info("нечего пополнять, все остатки выше порога", threshold=LOW_STOCK_THRESHOLD)

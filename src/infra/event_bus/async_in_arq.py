@@ -10,8 +10,8 @@ from core.domain_events import DomainEvent
 
 logger = structlog.get_logger(__name__)
 
-# Имя универсального arq-таска-диспетчера (объявлен в infra/worker/tasks/event_dispatcher.py)
-DISPATCH_EVENT_TASK = 'dispatch_event'
+# Имя универсального arq-таска для обработки доменных событий (объявлен в infra/worker/tasks/domain_event_processor.py)
+HANDLERS_PROCESSING_TASK_NAME = 'domain_event_processor'
 
 # {строковый путь к классу события: (сам класс, список классов хэндлеров)}
 _RegistryIndex = dict[str, tuple[type, list[type]]]
@@ -95,7 +95,7 @@ class AsyncArqEventBus(EventBus):
             return
 
         event_data = serialize_event(event)
-        await self._arq_client.enqueue_job(DISPATCH_EVENT_TASK, event_key=event_key, event_data=event_data)
+        await self._arq_client.enqueue_job(HANDLERS_PROCESSING_TASK_NAME, event_key=event_key, event_data=event_data)
         logger.debug("arq_event_bus: задание поставлено в очередь", event_key=event_key)
 
     async def dispatch_pending(self) -> None:

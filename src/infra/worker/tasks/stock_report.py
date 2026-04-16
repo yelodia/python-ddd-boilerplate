@@ -8,11 +8,14 @@ logger = structlog.get_logger(__name__)
 LOW_STOCK_THRESHOLD = 5  # товары с остатком ≤ этого значения считаются "мало на полке"
 
 
-async def stock_report_task(ctx: dict) -> None:
+async def stock_report_task(ctx: dict) -> None:  # FIXME non-DDD implementation!
     """
     Обходит все товары и логирует те, у которых остаток на полке опустился ниже порогового значения.
     Ничего не меняет — только читает и сигнализирует.
     """
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(task="stock_report")
+
     builder = UseCasesBuilder()
     repo = builder.get_entity_repo(ProductRepository)
 
@@ -32,13 +35,13 @@ async def stock_report_task(ctx: dict) -> None:
         offset += limit
 
     if not low_stock:
-        logger.info("stock_report: все товары в норме, остатки выше порога", threshold=LOW_STOCK_THRESHOLD)
+        logger.info("все товары в норме, остатки выше порога", threshold=LOW_STOCK_THRESHOLD)
         return
 
-    logger.warning("stock_report: обнаружены товары с низким остатком", count=len(low_stock))
+    logger.warning("обнаружены товары с низким остатком", count=len(low_stock))
     for product in low_stock:
         logger.warning(
-            "stock_report: низкий остаток",
+            "низкий остаток",
             product_id=product.id,
             name=product.name,
             stock=product.stock,
