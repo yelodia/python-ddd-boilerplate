@@ -56,13 +56,24 @@ class ShowCartUseCase(UseCase):
         self.repo = repo
         self.product_repo = product_repo
 
-    async def execute(self, cmd: ShowCartCmd) -> tuple[Cart, list[Product]]:
+    async def execute(self, cmd: ShowCartCmd) -> tuple[Cart, dict[int, Product]]:
         cart = await self.repo.get_by_id(cmd.cart_id)
-        products = [
-            await self.product_repo.get_by_id(item.product_id)
-            for item in cart.items
-        ]
-        return cart, products
+
+        product_ids = [item.product_id for item in cart.items]
+        products_by_id = await self.product_repo.get_many_by_ids(product_ids)
+
+        # TODO в данном конкретном юзкейсе это бессмысленно, но в других сценариях может понадобится более сложная
+        #  логика обработки пропусков, например:
+        #  - если пропущенных товаров нет, то всё ок, просто не отображаем их в интерфейсе,
+        #  - если есть - то это уже повод для тревоги, потому что корзина содержит товары, которых нет в каталоге, и
+        #  нужно разбираться, как такое могло произойти, и что с этим делать.
+        missing = [pid for pid in product_ids if pid not in products_by_id]
+        if missing:
+            raise ValueError(f"Товары из корзины не найдены в каталоге: {missing}")
+
+        # прежде тут был список товаров, а теперь словарь - да, это всё ещё DDD
+        # потому что это всё ещё простая, плоская структура с использованием нативных типов данных
+        return cart, products_by_id
 
 
 class CreateEmptyCartUseCase(UseCase):
@@ -77,7 +88,7 @@ class CreateEmptyCartUseCase(UseCase):
             persisted_cart = await self.repo.create(empty_cart)
 
         # TODO единственная категория "особых" событий - "первое создание объекта в системе"
-        #  по-хорошему, генерация таких событий должна происходить внутри домене, а здесь - только их пуш в шину.
+        #  по-хорошему, генерация таких событий должна происходить внутри домена, а здесь - только их пуш в шину.
         #  Но т.к. в данном bounded context не домен контролирует выдачу ID, то генерацией события
         #  пришлось озадачить юзкейс, хотя по смыслу - это событие не является "событием оркестрации"
         await self.event_bus.publish(NewCartCreated(cart_id=persisted_cart.id))

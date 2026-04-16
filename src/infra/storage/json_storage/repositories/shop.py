@@ -44,6 +44,15 @@ class JsonProductRepository(ProductRepository, JsonRepositoryBase):
 
         return self._to_domain(ProductInStorage(**raw_product))
 
+    async def get_many_by_ids(self, product_ids: list[int]) -> dict[int, Product]:
+        table = await self._load()
+        ids_set = set(product_ids)
+        return {
+            record["id"]: self._to_domain(ProductInStorage(**record))
+            for record in table.data
+            if record["id"] in ids_set
+        }
+
     async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Product]:
         table = await self._load()
         return [

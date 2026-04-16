@@ -19,6 +19,9 @@ class InMemoryProductRepository(ProductRepository):
             raise ProductNotFoundError(f"Product with ID {product_id} not found")
         return product
 
+    async def get_many_by_ids(self, product_ids: list[int]) -> dict[int, Product]:
+        return {pid: self._products[pid] for pid in product_ids if pid in self._products}
+
     async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Product]:
         products = sorted(self._products.values(), key=lambda p: p.id)
         return products[offset:offset + limit]

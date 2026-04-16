@@ -84,9 +84,8 @@ async def get_cart(
         use_case: ShowCartUseCase = build(ShowCartUseCase),
 ) -> ShowCartResponse:
     cmd = ShowCartCmd(cart_id=cart_id)
-    cart, products = await use_case.execute(cmd)
+    cart, products_by_id = await use_case.execute(cmd)
 
-    products_by_id = {p.id: p for p in products}
     rich_items = [
         RichCartItemResponse(
             product_id=item.product_id,

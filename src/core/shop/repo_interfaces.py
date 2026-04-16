@@ -27,6 +27,12 @@ class ProductRepository(ABC):
     async def get_by_id(self, product_id: int) -> Product: ...
 
     @abstractmethod
+    async def get_many_by_ids(self, product_ids: list[int]) -> dict[int, Product]:  # пример batch-операции
+        # Возвращает только найденные записи. Репозиторий не знает бизнес-контекст —
+        # решение о том, как реагировать на пропуски, остаётся за вызывающим кодом.
+        pass
+
+    @abstractmethod
     async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Product]: ...
 
     @abstractmethod
