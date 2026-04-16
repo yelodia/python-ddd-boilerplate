@@ -23,23 +23,17 @@ class AsyncInProcessEventBus(EventBus):
     Потому что в них может содержаться тяжёлый I/O (работа с ФС, БД, http-запросы, etc) и вообще что угодно.
 
     Цепочки событий поддерживаются: если хэндлер публикует новое событие через ту же шину,
-    оно попадает в ту же очередь и будет обработано в рамках того же вызова dispatch_pending().
+    оно будет обработано рекурсивно — прямо в том же вызове publish().
     """
 
     def __init__(self, handlers_registry: EventHandlersRegistry, handler_factory: HandlerFactory):
         self.handlers_registry = handlers_registry
         self.handler_factory = handler_factory
-        self._queue: list[DomainEvent] = []
 
     async def publish(self, event: DomainEvent) -> None:
-        self._queue.append(event)
-
-    async def dispatch_pending(self) -> None:
-        while self._queue:
-            event = self._queue.pop(0)
-            for handler_cls in self.handlers_registry.get(type(event), []):
-                handler = self.handler_factory(handler_cls, self)  # передаём себя, чтобы хэндлер мог пушить события
-                await handler.handle(event)
+        for handler_cls in self.handlers_registry.get(type(event), []):
+            handler = self.handler_factory(handler_cls, self)  # передаём себя, чтобы хэндлер мог пушить события
+            await handler.handle(event)
 
 
 def async_event_bus_factory(

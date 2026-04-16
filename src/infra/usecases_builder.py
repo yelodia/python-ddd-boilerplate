@@ -92,7 +92,7 @@ class UseCasesBuilder:
 
             if annotation is EventBus:
                 # Юзкейс получает свежую шину; хэндлер — ту же шину, через которую пришло событие,
-                # чтобы его новые события попали в ту же очередь и были обработаны в том же dispatch_pending().
+                # чтобы его новые события публиковались через ту же шину.
                 input_params[param_name] = event_bus if event_bus is not None else self.get_event_bus()
                 continue
 

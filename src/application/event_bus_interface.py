@@ -11,10 +11,5 @@ class EventBus(ABC):
 
     @abstractmethod
     async def publish(self, event: DomainEvent) -> None:
-        """Publish an domain event to the event bus."""
-        raise NotImplementedError
-
-    @abstractmethod
-    async def dispatch_pending(self) -> None:
-        """Dispatch all pending events. Should be called after commit() in use case."""
+        """Publish a domain event to the event bus."""
         raise NotImplementedError

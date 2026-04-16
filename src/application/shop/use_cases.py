@@ -75,7 +75,6 @@ class CreateEmptyCartUseCase(UseCase):
         #  Но т.к. в данном bounded context не домен контролирует выдачу ID, то генерацией события
         #  пришлось озадачить юзкейс, хотя по смыслу - это событие не является "событием оркестрации"
         await self.event_bus.publish(NewCartCreated(cart_id=persisted_cart.id))
-        await self.event_bus.dispatch_pending()
 
         return persisted_cart
 

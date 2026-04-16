@@ -77,7 +77,7 @@ class AsyncArqEventBus(EventBus):
     Воркер подхватывает его, реконструирует событие и прогоняет через все зарегистрированные
     хэндлеры — используя тот же регистр и тот же индекс.
 
-    dispatch_pending() — no-op: задания уже в Redis сразу после каждого publish().
+    Каждый publish() немедленно ставит задание в Redis — никакой буферизации нет.
 
     Цепочки событий работают: хэндлер, получивший этот же экземпляр шины, может вызвать
     publish() — новое задание уйдёт в arq и будет обработано независимо.
@@ -98,5 +98,3 @@ class AsyncArqEventBus(EventBus):
         await self._arq_client.enqueue_job(HANDLERS_PROCESSING_TASK_NAME, event_key=event_key, event_data=event_data)
         logger.debug("arq_event_bus: задание поставлено в очередь", event_key=event_key)
 
-    async def dispatch_pending(self) -> None:
-        pass  # no-op: задания уже в Redis после каждого publish()
