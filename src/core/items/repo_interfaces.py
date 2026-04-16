@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from src.core.items.entities import Item
+from core.items.entities import Item
 
 
 class ItemRepository(ABC):

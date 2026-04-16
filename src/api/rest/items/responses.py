@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.core.items.entities import Item
+from core.items.entities import Item
 
 
 class ItemResponse(BaseModel):

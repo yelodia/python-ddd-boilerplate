@@ -6,9 +6,9 @@ from uuid import UUID
 
 import aiofiles
 
+from core.items.entities import Item
 from core.items.exceptions import ItemNotFoundError
-from src.core.items.entities import Item
-from src.core.items.repo_interfaces import ItemRepository
+from core.items.repo_interfaces import ItemRepository
 
 
 # TODO вероятно, стоит завести какие-то местные модельки (pydantic) на будущее,

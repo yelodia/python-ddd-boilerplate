@@ -4,7 +4,7 @@ import sys
 import structlog
 from opentelemetry import trace
 
-from src.config import get_settings
+from config import get_settings
 
 
 def add_otel_context(logger: object, method: str, event_dict: dict) -> dict:

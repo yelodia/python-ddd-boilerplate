@@ -1,8 +1,8 @@
 from uuid import UUID
 
+from core.items.entities import Item
 from core.items.exceptions import ItemAlreadyExistsError, ItemNotFoundError
-from src.core.items.entities import Item
-from src.core.items.repo_interfaces import ItemRepository
+from core.items.repo_interfaces import ItemRepository
 
 
 class InMemoryItemRepository(ItemRepository):
