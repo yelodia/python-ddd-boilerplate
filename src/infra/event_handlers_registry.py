@@ -1,4 +1,5 @@
 from application.event_bus_interface import EventHandlersRegistry
+from application.reports.event_handlers import StockReportRequestedHandler
 from application.shop.event_handlers import (
     NewCartCreatedHandler,
     ProductWasAddedToCartHandler,
@@ -45,6 +46,15 @@ EVENT_HANDLERS: EventHandlersRegistry = {
     CartWasCleared: [CartWasClearedHandler],
     ProductWasTakenFromShelf: [ProductShelfEventHandler],
     ProductWasReturnedToShelf: [ProductShelfEventHandler],
-    TheMorningHasCome: [StockReplenishmentRequestedHandler],
-    StockReportRequested: [StockReportRequestedHandler],
+    TheMorningHasCome: [
+        StockReplenishmentRequestedHandler,  # пополняет запасы товаров на полках (условный "мерчендайзер")
+        # Раз уж событие "наступило утро" специально столь расплывчатое, то это хороший пример хотелки бизнеса,
+        # чтобы с одного события стартовало сразу несколько разных бизнес-процессов из самых разных bounded context'ов.
+        # Например:
+        # - проверить, открыта ли касса (если нет - отправить уведомление ответственному сотруднику)
+        # - зажечь уличную вывеску (допустим, она работает от умного реле с WiFi и имеет API для управления)
+        # - запустить кофемашину для сотрудников (ну тут точно ssh-сессия на кофемашину с Linux внутри, 100%)
+        # - и т.д.
+    ],
+    StockReportRequested: [StockReportRequestedHandler],  # отчёт триггерится отдельным событием, так хочет бизнес
 }

@@ -6,7 +6,7 @@ from infra.usecases_builder import UseCasesBuilder
 logger = structlog.get_logger(__name__)
 
 
-async def stock_replenishment_task(ctx: dict) -> None:
+async def the_morning_has_come_task(ctx: dict) -> None:
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(task="stock_replenishment")
 

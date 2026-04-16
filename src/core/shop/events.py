@@ -37,3 +37,13 @@ class ProductWasTakenFromShelf(DomainEvent):
 class ProductWasReturnedToShelf(DomainEvent):
     product_id: int
     pcs: int
+
+
+@dataclass(frozen=True)
+class TheMorningHasCome(DomainEvent):
+    pass
+
+
+@dataclass(frozen=True)
+class StockReportRequested(DomainEvent):
+    pass

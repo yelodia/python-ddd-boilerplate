@@ -4,7 +4,7 @@ from arq import cron
 from arq.connections import RedisSettings, create_pool
 
 from config import settings
-from infra.worker.cron_tasks.stock_replenishment import stock_replenishment_task
+from infra.worker.cron_tasks.stock_replenishment import the_morning_has_come_task
 from infra.worker.cron_tasks.stock_report import stock_report_task
 from infra.worker.tasks.domain_event_processor import domain_event_processor
 
@@ -135,10 +135,9 @@ class CronJobsSettings(_GeneralWorkerSettings):
 
     functions = [  # type: ignore[assignment]
         stock_report_task,
-        stock_replenishment_task,
     ]
 
     cron_jobs = [
         cron(stock_report_task, hour=6, minute=0),  # каждый день в 06:00
-        cron(stock_replenishment_task, hour=6, minute=5),  # каждый день в 06:05, сразу после отчёта
+        cron(the_morning_has_come_task, hour=6, minute=5),  # каждый день в 06:05, сразу после отчёта
     ]
