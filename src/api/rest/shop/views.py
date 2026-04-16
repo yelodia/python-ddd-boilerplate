@@ -4,7 +4,13 @@ from fastapi import APIRouter
 from starlette import status
 
 from api.dependencies import build
-from api.rest.shop.responses import ProductResponse, CartResponse
+from api.rest.shop.responses import (
+    ProductResponse,
+    CartResponse,
+    ShowCartResponse,
+    RichCartItemResponse,
+    DeliveryAddressResponse,
+)
 from application.shop.commands import (
     ShowAllProductsCmd,
     CreateProductCmd,
@@ -72,14 +78,34 @@ async def put_product_to_cart(
     return CartResponse.model_validate(asdict(updated_cart))
 
 
-@carts_router.get("/{cart_id}", response_model=CartResponse)
+@carts_router.get("/{cart_id}", response_model=ShowCartResponse)
 async def get_cart(
         cart_id: int,
         use_case: ShowCartUseCase = build(ShowCartUseCase),
-) -> CartResponse:
+) -> ShowCartResponse:
     cmd = ShowCartCmd(cart_id=cart_id)
-    cart = await use_case.execute(cmd)
-    return CartResponse.model_validate(asdict(cart))
+    cart, products = await use_case.execute(cmd)
+
+    products_by_id = {p.id: p for p in products}
+    rich_items = [
+        RichCartItemResponse(
+            product_id=item.product_id,
+            name=products_by_id[item.product_id].name,
+            price=item.price,
+            description=products_by_id[item.product_id].description,
+            pcs=item.pcs,
+            cost=item.cost,
+        )
+        for item in cart.items
+    ]
+
+    return ShowCartResponse(
+        id=cart.id,
+        items=rich_items,
+        total_amount=cart.total_amount,
+        delivery_address=DeliveryAddressResponse.model_validate(asdict(cart.delivery_address))
+        if cart.delivery_address else None,
+    )
 
 
 @carts_router.delete("/{cart_id}/{product_id}", response_model=CartResponse)

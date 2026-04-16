@@ -63,7 +63,7 @@ class Cart(Aggregate):
     _events: list = field(default_factory=list, init=False, repr=False)
 
     @property
-    def total_price(self) -> float:
+    def total_amount(self) -> float:
         return sum(item.price for item in self.items)
 
     def put_product(self, product: Product, pcs: int) -> None:

@@ -52,11 +52,17 @@ class ShowAllCartsUseCase(UseCase):
 
 
 class ShowCartUseCase(UseCase):
-    def __init__(self, repo: CartRepository):
+    def __init__(self, repo: CartRepository, product_repo: ProductRepository):
         self.repo = repo
+        self.product_repo = product_repo
 
-    async def execute(self, cmd: ShowCartCmd) -> Cart:
-        return await self.repo.get_by_id(cmd.cart_id)
+    async def execute(self, cmd: ShowCartCmd) -> tuple[Cart, list[Product]]:
+        cart = await self.repo.get_by_id(cmd.cart_id)
+        products = [
+            await self.product_repo.get_by_id(item.product_id)
+            for item in cart.items
+        ]
+        return cart, products
 
 
 class CreateEmptyCartUseCase(UseCase):
