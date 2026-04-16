@@ -57,12 +57,11 @@ class Shopping:
 
     @staticmethod
     def put_product_to_cart(product: Product, cart: Cart, pcs: int) -> None:
-        product.take_from_shelf(pcs)
-
         if not product.id:
             raise ValueError('Нельзя положить в корзину товар, который ещё не записан в БД')
 
         if not issubclass(type(product), Product):
             raise TypeError(f'В корзину можно положить только товар, а не {type(product)}')
 
+        product.take_from_shelf(pcs)
         cart.alternate_put_product(product.id, product.price, pcs)

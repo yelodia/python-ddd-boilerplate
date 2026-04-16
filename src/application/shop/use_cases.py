@@ -71,8 +71,9 @@ class CreateEmptyCartUseCase(UseCase):
             persisted_cart = await self.repo.create(empty_cart)
 
         # TODO единственная категория "особых" событий - "первое создание объекта в системе"
-        # пуш таких событий должен происходить в домене,
-        # но т.к. не он контролирует выдачу ID - пришлось озадачить юзкейс
+        #  по-хорошему, генерация таких событий должна происходить внутри домене, а здесь - только их пуш в шину.
+        #  Но т.к. в данном bounded context не домен контролирует выдачу ID, то генерацией события
+        #  пришлось озадачить юзкейс, хотя по смыслу - это событие не является "событием оркестрации"
         await self.event_bus.publish(NewCartCreated(cart_id=persisted_cart.id))
         await self.event_bus.dispatch_pending()
 
@@ -95,8 +96,8 @@ class PutProductToCartUseCase(UseCase):
             и опубликовать их в шину, потому что сущности тоже могут генерировать события!
     - абсолютно вся бизнес-логика вынесена в доменные сервисы и сущности
     """
-    def __init__(
-            self,
+
+    def __init__(self,
             cart_repo: CartRepository,
             product_repo: ProductRepository,
             uow: UowFactory,
@@ -112,13 +113,12 @@ class PutProductToCartUseCase(UseCase):
         product = await self.product_repo.get_by_id(cmd.product_id)
 
         Shopping.put_product_to_cart(product, cart, cmd.pcs)
-        await self.event_bus.publish(ProductWasAddedToCart(product_id=product.id, cart_id=cart.id, pcs=cmd.pcs))
 
         async with self.uow():
             await self.cart_repo.update(cart)
             await self.product_repo.update(product)
 
-        await self.event_bus.dispatch_pending()
+        await self.event_bus.publish(ProductWasAddedToCart(product_id=product.id, cart_id=cart.id, pcs=cmd.pcs))
 
         return cart
 
@@ -146,8 +146,6 @@ class RemoveProductFromCartUseCase(UseCase):
         for event in cart._events:
             await self.event_bus.publish(event)
 
-        await self.event_bus.dispatch_pending()
-
         return cart
 
 
@@ -166,7 +164,5 @@ class ClearCartUseCase(UseCase):
 
         for event in cart._events:
             await self.event_bus.publish(event)
-
-        await self.event_bus.dispatch_pending()
 
         return cart
