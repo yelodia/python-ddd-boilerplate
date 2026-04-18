@@ -14,8 +14,8 @@ class StockReportRequestedHandler(EventHandler):
     """Обходит все товары, собирает те, у которых остаток ниже порога, и сохраняет отчёт в CSV."""
 
     def __init__(self, repo: ProductRepository, storage: ReportStorage):
-        self._repo = repo
-        self._storage = storage
+        self.repo = repo
+        self.storage = storage
 
     async def handle(self, event: StockReportRequested) -> None:
         low_stock = []
@@ -23,7 +23,7 @@ class StockReportRequestedHandler(EventHandler):
         limit = 100
 
         while True:
-            batch = await self._repo.get_slice(offset=offset, limit=limit)
+            batch = await self.repo.get_slice(offset=offset, limit=limit)
             if not batch:
                 break
             for product in batch:
@@ -42,7 +42,7 @@ class StockReportRequestedHandler(EventHandler):
             for p in low_stock
         ]
         filename = f"stock_report_{event.occurred_at.strftime('%Y-%m-%dT%H-%M-%S')}.csv"
-        self._storage.save(filename, rows, fieldnames=["product_id", "name", "stock", "threshold"])
+        self.storage.save(filename, rows, fieldnames=["product_id", "name", "stock", "threshold"])
 
         logger.warning(
             "обнаружены товары с низким остатком, отчёт сохранён",

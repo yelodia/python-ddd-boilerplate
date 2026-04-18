@@ -101,10 +101,9 @@ class StockReplenishmentRequestedHandler(EventHandler):
                 if product.stock >= LOW_STOCK_THRESHOLD:
                     continue
 
-                amount = REPLENISHMENT_TARGET - product.stock
                 try:
                     async with self._uow():
-                        product.return_to_shelf(amount)
+                        product.stock_replenishment(REPLENISHMENT_TARGET)
                         await self._repo.update(product)
 
                     for product_event in product._events:

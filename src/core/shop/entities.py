@@ -43,6 +43,12 @@ class Product(Entity):  # товар на полке магазина / това
         self.stock += pcs
         self._events.append(ProductWasReturnedToShelf(product_id=self.id, pcs=pcs))
 
+    def stock_replenishment(self, new_stock_qty: int) -> None:
+        """Пополняет остаток на полке (условный "мерчендайзер" положил товар на полку)."""
+        if new_stock_qty < 1:
+            raise ValueError('Количество должно быть не менее 1')
+        self.stock = new_stock_qty
+        # можно добавить событие о пополнении запаса, если это нужно бизнесу
 
 @dataclass
 class Cart(Aggregate):

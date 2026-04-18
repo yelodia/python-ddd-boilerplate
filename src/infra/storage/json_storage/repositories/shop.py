@@ -57,8 +57,7 @@ class JsonProductRepository(ProductRepository, JsonRepositoryBase):
         table = await self._load()
         return [
             self._to_domain(ProductInStorage(**product))
-            for product
-            in table.data[offset: offset + limit]
+            for product in table.data[offset: offset + limit]
         ]
 
     async def create(self, product: Product) -> Product:
@@ -176,8 +175,7 @@ class JsonCartRepository(CartRepository, JsonRepositoryBase):
         table = await self._load()
         return [
             self._to_domain(CartInStorage(**cart))
-            for cart
-            in table.data[offset: offset + limit]
+            for cart in table.data[offset: offset + limit]
         ]
 
     async def create(self, cart: Cart) -> Cart:
