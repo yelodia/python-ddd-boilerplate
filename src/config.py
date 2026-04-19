@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     # Reports storage
     reports_storage_dir: str = "data/reports"
 
+    # External Clients API settings
+    dummy_api_base_url: str = "https://example.com/api/v1"
+    dummy_api_app_id: str = "your-app-id"
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

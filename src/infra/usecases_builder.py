@@ -4,6 +4,7 @@ from arq.connections import ArqRedis
 
 from application.event_bus_interface import EventBus
 from application.event_handler_base import EventHandler
+from application.posts.external_tool_interface import ExternalToolApiClient
 from application.reports.report_storage import ReportStorage
 from application.uow_interface import UnitOfWork
 from application.use_case_base import UseCase, UowFactory
@@ -12,6 +13,7 @@ from core.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from core.items.repo_interfaces import ItemRepository
 from core.shop.repo_interfaces import ProductRepository, CartRepository
 from infra.event_bus.async_in_main_process import async_event_bus_factory
+from infra.external_tool.dummy_api_client import DummyApiClient
 from infra.reports.csv_report_storage import CsvReportStorage
 from infra.storage.database.basic_stuff import get_session_factory
 from infra.storage.database.repositories.item import SqlItemRepository
@@ -102,6 +104,10 @@ class UseCasesBuilder:
                 input_params[param_name] = self.get_report_storage()
                 continue
 
+            if annotation is ExternalToolApiClient:
+                input_params[param_name] = self.get_external_tool_client()
+                continue
+
             raise UsecaseUnknownParamError(
                 f"Unknown parameter '{param_name}' with type '{annotation}' in '{cls.__name__}'"
             )
@@ -150,7 +156,7 @@ class UseCasesBuilder:
         raise UnknownStorageError(f"Unsupported storage backend: {settings.storage_backend}")
 
     @staticmethod
-    def get_report_storage(self) -> ReportStorage:
+    def get_report_storage() -> ReportStorage:
         return CsvReportStorage(settings.reports_storage_dir)
 
     def get_event_bus(self) -> EventBus:
@@ -159,3 +165,7 @@ class UseCasesBuilder:
             from infra.event_bus.async_in_arq_worker import AsyncArqEventBus
             return AsyncArqEventBus(EVENT_HANDLERS, self._arq_client)
         return async_event_bus_factory(EVENT_HANDLERS, self.build_handler)
+
+    @staticmethod
+    def get_external_tool_client() -> ExternalToolApiClient:
+        return DummyApiClient(base_url=settings.dummy_api_base_url, app_id=settings.dummy_api_app_id)

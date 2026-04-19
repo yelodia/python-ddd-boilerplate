@@ -36,7 +36,7 @@ carts_router = APIRouter(prefix="/carts", tags=["carts"])
 
 # region Product Views
 @products_router.get("/", response_model=list[ProductResponse])
-async def show_all_products_view(
+async def show_all_products(
         offset: int = 0,
         limit: int = 20,
         use_case: ShowAllProductsUseCase = build(ShowAllProductsUseCase),
@@ -98,12 +98,15 @@ async def get_cart(
         for item in cart.items
     ]
 
+    delivery_address = None
+    if cart.delivery_address:
+        delivery_address = DeliveryAddressResponse.model_validate(asdict(cart.delivery_address))
+
     return ShowCartResponse(
         id=cart.id,
         items=rich_items,
         total_amount=cart.total_amount,
-        delivery_address=DeliveryAddressResponse.model_validate(asdict(cart.delivery_address))
-        if cart.delivery_address else None,
+        delivery_address=delivery_address,
     )
 
 

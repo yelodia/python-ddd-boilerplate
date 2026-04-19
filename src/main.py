@@ -7,6 +7,7 @@ from fastapi import FastAPI, APIRouter
 from pydantic import BaseModel
 
 from api.rest.items.views import router as items_router
+from api.rest.posts.views import posts_router
 from api.rest.root_error_handlers import bind_error_handlers_to
 from api.rest.shop.views import products_router, carts_router
 from config import get_settings
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     router.include_router(items_router)
     router.include_router(products_router)
     router.include_router(carts_router)
+    router.include_router(posts_router)
     app.include_router(router)
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])
