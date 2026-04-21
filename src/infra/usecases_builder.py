@@ -8,6 +8,7 @@ from application.posts.external_tool_interface import ExternalToolApiClient
 from application.reports.report_storage import ReportStorage
 from application.uow_interface import UnitOfWork
 from application.use_case_base import UseCase, UowFactory
+from application.ws_publisher_interface import WsPublisher
 from config import settings, SQL, JSON, RAM
 from core.exceptions import UnknownStorageError, UsecaseUnknownParamError
 from core.items.repo_interfaces import ItemRepository
@@ -108,6 +109,10 @@ class UseCasesBuilder:
                 input_params[param_name] = self.get_external_tool_client()
                 continue
 
+            if annotation is WsPublisher:
+                input_params[param_name] = self.get_ws_publisher()
+                continue
+
             raise UsecaseUnknownParamError(
                 f"Unknown parameter '{param_name}' with type '{annotation}' in '{cls.__name__}'"
             )
@@ -169,3 +174,12 @@ class UseCasesBuilder:
     @staticmethod
     def get_external_tool_client() -> ExternalToolApiClient:
         return DummyApiClient(base_url=settings.dummy_api_base_url, app_id=settings.dummy_api_app_id)
+
+    def get_ws_publisher(self) -> WsPublisher:
+        from infra.ws.redis_ws_publisher import RedisWsPublisher
+        if self._arq_client is None:
+            raise RuntimeError(
+                "WsPublisher недоступен: UseCasesBuilder создан без arq_client. "
+                "WS-нотификаторы должны запускаться только в arq-воркере."
+            )
+        return RedisWsPublisher(self._arq_client)

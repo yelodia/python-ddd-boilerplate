@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -5,17 +6,21 @@ from arq import create_pool
 from arq.connections import RedisSettings
 from fastapi import FastAPI, APIRouter
 from pydantic import BaseModel
+from redis.asyncio import Redis
 
 from api.rest.items.views import router as items_router
 from api.rest.posts.views import posts_router
 from api.rest.root_error_handlers import bind_error_handlers_to
 from api.rest.shop.views import products_router, carts_router
+from api.rest.shop.ws_views import ws_router
 from config import get_settings
 from infra.middleware.correlation import CorrelationMiddleware
 from infra.middleware.logging import LoggingMiddleware
 from infra.observability.logging import setup_logging
 from infra.observability.tracing import setup_tracing
 from infra.storage.json_storage.setup import ensure_json_storage
+from infra.ws.pubsub_listener import ws_pubsub_listener
+from infra.ws_manager import manager
 
 
 @asynccontextmanager
@@ -29,8 +34,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     app.state.arq_pool = await create_pool(RedisSettings.from_dsn(str(settings.redis_url)))
 
+    # Отдельный Redis-клиент для pub/sub подписки (ArqRedis не подходит для длинных подписок)
+    pubsub_redis = Redis.from_url(str(settings.redis_url))
+    pubsub_task = asyncio.create_task(ws_pubsub_listener(manager, pubsub_redis))
+
     yield
 
+    pubsub_task.cancel()
+    try:
+        await pubsub_task
+    except asyncio.CancelledError:
+        pass
+    await pubsub_redis.aclose()
     await app.state.arq_pool.aclose()
 
 
@@ -61,6 +76,7 @@ def create_app() -> FastAPI:
     router.include_router(products_router)
     router.include_router(carts_router)
     router.include_router(posts_router)
+    router.include_router(ws_router)
     app.include_router(router)
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])

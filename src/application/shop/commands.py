@@ -12,6 +12,13 @@ class CreateProductCmd(BaseModel):
     description: str
 
 
+class UpdateProductCmd(BaseModel):
+    product_id: int
+    name: str
+    price: float
+    description: str
+
+
 class ShowAllCartsCmd(BaseModel):
     offset: int = 0
     limit: int = 20

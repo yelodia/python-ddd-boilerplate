@@ -8,13 +8,21 @@ from application.shop.event_handlers import (
     ProductShelfEventHandler,
     StockReplenishmentRequestedHandler,
 )
+from application.shop.ws_notification_handlers import (
+    ProductCreatedWsNotifier,
+    ProductStockWsNotifier,
+    ProductInfoWsNotifier,
+    CartWsNotifier,
+)
 from core.shop.events import (
     NewCartCreated,
+    ProductCreated,
     ProductWasAddedToCart,
     ProductWasRemovedFromCart,
     CartWasCleared,
     ProductWasTakenFromShelf,
     ProductWasReturnedToShelf,
+    ProductUpdated,
     TheMorningHasCome,
     StockReportRequested,
 )
@@ -41,11 +49,13 @@ from core.shop.events import (
 """
 EVENT_HANDLERS: EventHandlersRegistry = {
     NewCartCreated: [NewCartCreatedHandler],
-    ProductWasAddedToCart: [ProductWasAddedToCartHandler],
-    ProductWasRemovedFromCart: [ProductWasRemovedFromCartHandler],
-    CartWasCleared: [CartWasClearedHandler],
-    ProductWasTakenFromShelf: [ProductShelfEventHandler],
-    ProductWasReturnedToShelf: [ProductShelfEventHandler],
+    ProductCreated: [ProductCreatedWsNotifier],
+    ProductWasAddedToCart: [ProductWasAddedToCartHandler, CartWsNotifier],
+    ProductWasRemovedFromCart: [ProductWasRemovedFromCartHandler, CartWsNotifier],
+    CartWasCleared: [CartWasClearedHandler, CartWsNotifier],
+    ProductWasTakenFromShelf: [ProductShelfEventHandler, ProductStockWsNotifier],
+    ProductWasReturnedToShelf: [ProductShelfEventHandler, ProductStockWsNotifier],
+    ProductUpdated: [ProductInfoWsNotifier],
     TheMorningHasCome: [
         StockReplenishmentRequestedHandler,  # пополняет запасы товаров на полках (условный "мерчендайзер")
         # Раз уж событие "наступило утро" специально столь расплывчатое, то это хороший пример хотелки бизнеса,

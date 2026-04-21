@@ -47,3 +47,21 @@ class TheMorningHasCome(DomainEvent):
 @dataclass(frozen=True)
 class StockReportRequested(DomainEvent):
     pass
+
+
+@dataclass(frozen=True)
+class ProductUpdated(DomainEvent):
+    product_id: int
+    name: str
+    price: float
+    description: str
+    stock: int
+
+
+@dataclass(frozen=True)
+class ProductCreated(DomainEvent):
+    product_id: int
+    name: str
+    price: float
+    description: str
+    stock: int

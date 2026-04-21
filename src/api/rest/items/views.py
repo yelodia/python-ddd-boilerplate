@@ -90,10 +90,10 @@ async def delete_item(
 
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket, mgr: WsManagerDep) -> None:
-    await mgr.connect(ws)
+    await mgr.connect(ws, topic="items")
     try:
         while True:
             data = await ws.receive_text()
-            await mgr.broadcast(f"broadcast: {data}")
+            await mgr.broadcast("items", {"message": data})
     except WebSocketDisconnect:
-        mgr.disconnect(ws)
+        mgr.disconnect(ws, topic="items")

@@ -8,6 +8,7 @@ from core.shop.events import (
     CartWasCleared,
     ProductWasTakenFromShelf,
     ProductWasReturnedToShelf,
+    ProductUpdated,
 )
 from core.shop.exceptions import WrongCartItemPcsError, CartIsFullError, BadDeliveryAddressError, ProductNotFoundError, \
     NotEnoughStockError
@@ -48,7 +49,26 @@ class Product(Entity):  # товар на полке магазина / това
         if new_stock_qty < 1:
             raise ValueError('Количество должно быть не менее 1')
         self.stock = new_stock_qty
-        # можно добавить событие о пополнении запаса, если это нужно бизнесу
+        self._events.append(ProductUpdated(
+            product_id=self.id,
+            name=self.name,
+            price=self.price,
+            description=self.description,
+            stock=self.stock,
+        ))
+
+    def update(self, name: str, price: float, description: str) -> None:
+        """Обновляет витринные данные товара и поднимает событие об изменении."""
+        self.name = name
+        self.price = price
+        self.description = description
+        self._events.append(ProductUpdated(
+            product_id=self.id,
+            name=self.name,
+            price=self.price,
+            description=self.description,
+            stock=self.stock,
+        ))
 
 @dataclass
 class Cart(Aggregate):

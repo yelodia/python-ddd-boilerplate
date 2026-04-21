@@ -2,6 +2,7 @@ from application.event_bus_interface import EventBus
 from application.shop.commands import (
     ShowAllProductsCmd,
     CreateProductCmd,
+    UpdateProductCmd,
     CreateEmptyCartCmd,
     ShowAllCartsCmd,
     PutProductToCartCmd,
@@ -11,9 +12,27 @@ from application.shop.commands import (
 )
 from application.use_case_base import UseCase, UowFactory
 from core.shop.entities import Product, Cart
-from core.shop.events import NewCartCreated, ProductWasAddedToCart
+from core.shop.events import NewCartCreated, ProductWasAddedToCart, ProductCreated
 from core.shop.repo_interfaces import ProductRepository, CartRepository
 from core.shop.services import Shopping
+
+
+class UpdateProductUseCase(UseCase):
+    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
+        self.repo = repo
+        self.uow = uow
+        self.event_bus = event_bus
+
+    async def execute(self, cmd: UpdateProductCmd) -> Product:
+        async with self.uow():
+            product = await self.repo.get_by_id(cmd.product_id)
+            product.update(name=cmd.name, price=cmd.price, description=cmd.description)
+            await self.repo.update(product)
+
+        for event in product._events:
+            await self.event_bus.publish(event)
+
+        return product
 
 
 class ShowAllProductsUseCase(UseCase):
@@ -25,9 +44,10 @@ class ShowAllProductsUseCase(UseCase):
 
 
 class CreateProductUseCase(UseCase):
-    def __init__(self, repo: ProductRepository, uow: UowFactory):
+    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
         self.repo = repo
         self.uow = uow
+        self.event_bus = event_bus
 
     async def execute(self, cmd: CreateProductCmd) -> Product:
         new_product = Product(
@@ -38,9 +58,20 @@ class CreateProductUseCase(UseCase):
             description=cmd.description,
         )
         async with self.uow():
-            product_with_id = await self.repo.create(new_product)
+            product = await self.repo.create(new_product)
 
-        return product_with_id
+        # ProductCreated публикуется здесь, а не в __post_init__ сущности:
+        # при вызове __post_init__ ID ещё не назначен (его выдаёт хранилище через assign_to_id).
+        # Аналогично NewCartCreated в CreateEmptyCartUseCase.
+        await self.event_bus.publish(ProductCreated(
+            product_id=product.id,
+            name=product.name,
+            price=product.price,
+            description=product.description,
+            stock=product.stock,
+        ))
+
+        return product
 
 
 class ShowAllCartsUseCase(UseCase):

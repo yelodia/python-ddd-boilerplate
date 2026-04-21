@@ -14,6 +14,7 @@ from api.rest.shop.responses import (
 from application.shop.commands import (
     ShowAllProductsCmd,
     CreateProductCmd,
+    UpdateProductCmd,
     CreateEmptyCartCmd,
     PutProductToCartCmd,
     ShowCartCmd,
@@ -23,6 +24,7 @@ from application.shop.commands import (
 from application.shop.use_cases import (
     ShowAllProductsUseCase,
     CreateProductUseCase,
+    UpdateProductUseCase,
     CreateEmptyCartUseCase,
     PutProductToCartUseCase,
     ShowCartUseCase,
@@ -50,6 +52,15 @@ async def show_all_products(
 async def create_product(
         cmd: CreateProductCmd,
         use_case: CreateProductUseCase = build(CreateProductUseCase),
+) -> ProductResponse:
+    product = await use_case.execute(cmd)
+    return ProductResponse.model_validate(asdict(product))
+
+
+@products_router.put("/", response_model=ProductResponse)
+async def update_product(
+        cmd: UpdateProductCmd,
+        use_case: UpdateProductUseCase = build(UpdateProductUseCase),
 ) -> ProductResponse:
     product = await use_case.execute(cmd)
     return ProductResponse.model_validate(asdict(product))
