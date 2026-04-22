@@ -1,6 +1,7 @@
 from dataclasses import asdict
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 from starlette import status
 
 from api.dependencies import build
@@ -57,11 +58,24 @@ async def create_product(
     return ProductResponse.model_validate(asdict(product))
 
 
+class UpdateProductRequest(BaseModel):
+    id: int
+    name: str
+    price: float
+    description: str
+
+
 @products_router.put("/", response_model=ProductResponse)
 async def update_product(
-        cmd: UpdateProductCmd,
+        body: UpdateProductRequest,
         use_case: UpdateProductUseCase = build(UpdateProductUseCase),
 ) -> ProductResponse:
+    cmd = UpdateProductCmd(
+        product_id=body.id,
+        name=body.name,
+        price=body.price,
+        description=body.description,
+    )
     product = await use_case.execute(cmd)
     return ProductResponse.model_validate(asdict(product))
 

@@ -76,7 +76,7 @@ class ProductWasReturnedToShelf(DomainEvent):
 
 
 @dataclass(frozen=True)
-class ProductUpdated(DomainEvent):
+class ProductChanged(DomainEvent):
     """Обобщённое бизнес-событие - продукт КАК-ТО изменился. Подойдет для оповещения через вебсокеты."""
     product_id: int
 

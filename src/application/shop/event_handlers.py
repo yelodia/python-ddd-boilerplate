@@ -46,7 +46,7 @@ class ProductWasRemovedFromCartHandler(EventHandler):
             product.return_to_shelf(event.pcs)
             await self.repo.update(product)
 
-        # ProductWasReturnedToShelf + ProductUpdated уходят в шину:
+        # ProductWasReturnedToShelf + ProductChanged уходят в шину:
         # первый — для логирования, второй — шина сама пошлёт WS-уведомление клиентам
         for product_event in product._events:
             await self.event_bus.publish(product_event)
@@ -98,7 +98,7 @@ class StockReplenishmentRequestedHandler(EventHandler):
                         product.stock_replenishment(REPLENISHMENT_TARGET)
                         await self.repo.update(product)
 
-                    # ProductUpdated уходит в шину — шина сама пошлёт WS-уведомление клиентам
+                    # ProductChanged уходит в шину — шина сама пошлёт WS-уведомление клиентам
                     for product_event in product._events:
                         await self.event_bus.publish(product_event)
 
