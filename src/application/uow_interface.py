@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from contextlib import AbstractAsyncContextManager
+from typing import Callable
 
 
 class UnitOfWork(ABC):
@@ -10,3 +12,6 @@ class UnitOfWork(ABC):
 
     @abstractmethod
     async def close(self) -> None: ...
+
+
+UowFactory = Callable[[], AbstractAsyncContextManager[UnitOfWork]]

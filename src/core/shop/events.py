@@ -88,6 +88,12 @@ class ProductCreated(DomainEvent):
 
 
 @dataclass(frozen=True)
+class CartUpdated(DomainEvent):
+    """Обобщённое бизнес-событие - корзина КАК-ТО изменилась. Подойдет для оповещения через вебсокеты."""
+    cart_id: int
+
+
+@dataclass(frozen=True)
 class TheMorningHasCome(DomainEvent):
     pass
 

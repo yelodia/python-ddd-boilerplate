@@ -1,4 +1,4 @@
-import dataclasses
+from dataclasses import fields as dataclass_fields
 from datetime import datetime
 from uuid import UUID
 
@@ -6,7 +6,10 @@ import structlog
 from arq.connections import ArqRedis
 
 from application.event_bus_interface import EventBus, EventHandlersRegistry
+from application.event_handler_base import EventHandler
+from application.ws_publisher_interface import WsPublisher
 from core.domain_events import DomainEvent
+from infra.ws_events_registry import WsEventsRegistry
 
 logger = structlog.get_logger(__name__)
 
@@ -14,7 +17,7 @@ logger = structlog.get_logger(__name__)
 HANDLERS_PROCESSING_TASK_NAME = 'domain_event_processor'
 
 # {строковый путь к классу события: (сам класс, список классов хэндлеров)}
-_RegistryIndex = dict[str, tuple[type, list[type]]]
+_RegistryIndex = dict[str, tuple[type[DomainEvent], list[type[EventHandler]]]]
 
 
 def _class_path(cls: type) -> str:
@@ -42,7 +45,7 @@ def serialize_event(event: DomainEvent) -> dict:
     UUID → str, datetime → ISO-строка, остальное — как есть.
     """
     result = {}
-    for f in dataclasses.fields(event):
+    for f in dataclass_fields(event):
         value = getattr(event, f.name)
         if isinstance(value, UUID):
             value = str(value)
@@ -52,12 +55,12 @@ def serialize_event(event: DomainEvent) -> dict:
     return result
 
 
-def deserialize_event(event_cls: type, event_data: dict) -> DomainEvent:
+def deserialize_event(event_cls: type[DomainEvent], event_data: dict) -> DomainEvent:
     """
     Реконструирует объект события из словаря.
     Парсит str → UUID и str → datetime обратно, опираясь на аннотации типов класса.
     """
-    hints = {f.name: f.type for f in dataclasses.fields(event_cls)}
+    hints = {f.name: f.type for f in dataclass_fields(event_cls)}
     kwargs = {}
     for key, value in event_data.items():
         annotation = hints.get(key)
@@ -83,17 +86,34 @@ class AsyncArqEventBus(EventBus):
     publish() — новое задание уйдёт в arq и будет обработано независимо.
     """
 
-    def __init__(self, handlers_registry: EventHandlersRegistry, arq_client: ArqRedis):
+    def __init__(
+            self,
+            handlers_registry: EventHandlersRegistry,
+            arq_client: ArqRedis,
+            ws_events_registry: WsEventsRegistry,
+            ws_publisher: WsPublisher,
+    ):
         self._arq_client = arq_client
         self._index: _RegistryIndex = _build_index(handlers_registry)
+        self._ws_events_registry = ws_events_registry
+        self._ws_publisher = ws_publisher
 
     async def publish(self, event: DomainEvent) -> None:
-        event_key = _class_path(type(event))
+        # WS первым - он лёгкий, не требует сериализации и round-trip до Redis, потом всё остальное
+        await self._notify_ws_subscribers(event)
+        await self._enqueue_handlers(event)
 
-        if event_key not in self._index:
-            logger.warning("Event not found in register, skip", event_key=event_key)
+    async def _notify_ws_subscribers(self, event: DomainEvent) -> None:
+        notification_cls = self._ws_events_registry.get(type(event), None)
+        if notification_cls is None:
             return
+        notification = notification_cls.from_event(event)
+        await self._ws_publisher.notify(notification)
 
+    async def _enqueue_handlers(self, event: DomainEvent) -> None:
+        event_key = _class_path(type(event))
+        if event_key not in self._index:
+            return
         event_data = serialize_event(event)
         await self._arq_client.enqueue_job(HANDLERS_PROCESSING_TASK_NAME, event_key=event_key, event_data=event_data)
         logger.debug("Job queued", event_key=event_key)

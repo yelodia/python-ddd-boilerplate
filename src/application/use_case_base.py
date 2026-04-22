@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
-from contextlib import AbstractAsyncContextManager
-from typing import Callable
+from typing import Any
 
-from application.uow_interface import UnitOfWork
-
-UowFactory = Callable[[], AbstractAsyncContextManager[UnitOfWork]]
+from pydantic import BaseModel as CommandDTO
 
 
 class UseCase(ABC):
+    """Базовый класс для всех юзкейсов."""
+
     @abstractmethod
-    async def execute(self, *args, **kwargs):
+    async def execute(self, cmd: CommandDTO) -> Any:
         raise NotImplementedError

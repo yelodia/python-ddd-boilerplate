@@ -6,6 +6,7 @@ from core.shop.events import (
     ProductWasAddedToCart,
     ProductWasRemovedFromCart,
     CartWasCleared,
+    CartUpdated,
     ProductWasTakenFromShelf,
     ProductWasReturnedToShelf,
     ProductUpdated,
@@ -41,6 +42,7 @@ class Product(Entity):  # товар на полке магазина / това
             )
         self.stock -= pcs
         self._events.append(ProductWasTakenFromShelf(product_id=self.id, pcs=pcs))
+        self._events.append(ProductUpdated(product_id=self.id))
 
     def return_to_shelf(self, pcs: int) -> None:
         """Увеличивает остаток на полке (покупатель убрал товар из корзины)."""
@@ -48,6 +50,7 @@ class Product(Entity):  # товар на полке магазина / това
             raise ValueError('Количество должно быть не менее 1')
         self.stock += pcs
         self._events.append(ProductWasReturnedToShelf(product_id=self.id, pcs=pcs))
+        self._events.append(ProductUpdated(product_id=self.id))
 
     def stock_replenishment(self, new_stock_qty: int) -> None:
         """Пополняет остаток на полке (условный "мерчендайзер" положил товар на полку)."""
@@ -108,6 +111,7 @@ class Cart(Aggregate):
             existed_item.add(pcs)
 
         self._events.append(ProductWasAddedToCart(product_id=product.id, cart_id=self.id, pcs=pcs))
+        self._events.append(CartUpdated(cart_id=self.id))
 
     """
     Альтернативный вариант, как можно реализовать бизнес-процедуру "положить товар в корзину":
@@ -141,12 +145,14 @@ class Cart(Aggregate):
 
         self.items.remove(found_item)
         self._events.append(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=found_item.pcs))
+        self._events.append(CartUpdated(cart_id=self.id))
 
     def clear(self) -> None:
         for product_id, pcs in [(item.product_id, item.pcs) for item in self.items]:
             self._events.append(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=pcs))
         self.items = []
         self._events.append(CartWasCleared(cart_id=self.id))
+        self._events.append(CartUpdated(cart_id=self.id))
 
     def update_delivery_address(self, delivery_address: DeliveryAddress) -> None:
         if not issubclass(type(delivery_address), DeliveryAddress):

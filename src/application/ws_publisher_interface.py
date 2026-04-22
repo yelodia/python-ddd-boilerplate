@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 
 from application.ws_notification_base import WsNotification
+from core.domain_events import DomainEvent
+
+WsEventsRegistry = dict[type[DomainEvent], type[WsNotification]]
 
 
 class WsPublisher(ABC):

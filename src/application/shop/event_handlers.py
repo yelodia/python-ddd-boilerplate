@@ -2,9 +2,7 @@ import structlog
 
 from application.event_bus_interface import EventBus
 from application.event_handler_base import EventHandler
-from application.shop.ws_notifications import ProductChangedWsNotification
-from application.use_case_base import UowFactory
-from application.ws_publisher_interface import WsPublisher
+from application.uow_interface import UowFactory
 from core.shop.events import (
     NewCartCreated,
     ProductWasAddedToCart,
@@ -37,11 +35,10 @@ class ProductWasRemovedFromCartHandler(EventHandler):
     Выполняется в arq-воркере — это осознанный eventual consistency:
     возврат на полку может в будущем потребовать проверки товара ревизором."""
 
-    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus, ws: WsPublisher):
+    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
         self.repo = repo
         self.uow = uow
         self.event_bus = event_bus
-        self.ws = ws
 
     async def handle(self, event: ProductWasRemovedFromCart) -> None:
         async with self.uow():
@@ -49,12 +46,10 @@ class ProductWasRemovedFromCartHandler(EventHandler):
             product.return_to_shelf(event.pcs)
             await self.repo.update(product)
 
-        # ProductWasReturnedToShelf уходит в шину для логирования
+        # ProductWasReturnedToShelf + ProductUpdated уходят в шину:
+        # первый — для логирования, второй — шина сама пошлёт WS-уведомление клиентам
         for product_event in product._events:
             await self.event_bus.publish(product_event)
-
-        # WS-уведомление: товар вернулся на полку — остаток изменился
-        await self.ws.notify(ProductChangedWsNotification(product_id=product.id))
 
         logger.debug(event)
 
@@ -78,11 +73,10 @@ REPLENISHMENT_TARGET = 20  # до какого значения пополняе
 class StockReplenishmentRequestedHandler(EventHandler):
     """Пополняет остатки всех товаров, упавших ниже порогового значения."""
 
-    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus, ws: WsPublisher):
+    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
         self.repo = repo
         self.uow = uow
         self.event_bus = event_bus
-        self.ws = ws
 
     async def handle(self, event: TheMorningHasCome) -> None:
         replenished = []
@@ -104,11 +98,9 @@ class StockReplenishmentRequestedHandler(EventHandler):
                         product.stock_replenishment(REPLENISHMENT_TARGET)
                         await self.repo.update(product)
 
+                    # ProductUpdated уходит в шину — шина сама пошлёт WS-уведомление клиентам
                     for product_event in product._events:
                         await self.event_bus.publish(product_event)
-
-                    # WS-уведомление: остаток пополнен — клиенты могут перезапросить данные товара
-                    await self.ws.notify(ProductChangedWsNotification(product_id=product.id))
 
                     replenished.append((product.id, product.name, product.stock))
                 except Exception:

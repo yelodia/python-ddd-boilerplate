@@ -7,7 +7,8 @@ from application.items.commands import (
     UpdateItemCmd,
     DeleteItemCmd,
 )
-from application.use_case_base import UseCase, UowFactory
+from application.uow_interface import UowFactory
+from application.use_case_base import UseCase
 from core.items.entities import Item
 from core.items.repo_interfaces import ItemRepository
 

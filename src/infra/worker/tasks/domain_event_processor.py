@@ -4,6 +4,8 @@ from arq.connections import ArqRedis
 from infra.event_bus.async_in_arq_worker import AsyncArqEventBus, deserialize_event
 from infra.event_handlers_registry import EVENT_HANDLERS
 from infra.usecases_builder import UseCasesBuilder
+from infra.ws.publishers.ws_via_redis import RedisWsPublisher
+from infra.ws_events_registry import WS_EVENTS
 
 logger = structlog.get_logger(__name__)
 
@@ -27,7 +29,7 @@ async def domain_event_processor(ctx: dict, *, event_key: str, event_data: dict)
     structlog.contextvars.bind_contextvars(task="domain_event_processor", event_key=event_key)
 
     arq_client: ArqRedis = ctx['redis']
-    bus = AsyncArqEventBus(EVENT_HANDLERS, arq_client)
+    bus = AsyncArqEventBus(EVENT_HANDLERS, arq_client, WS_EVENTS, RedisWsPublisher(arq_client))
 
     if event_key not in bus._index:
         logger.error("Unknown Event, skipping. Please, re-check EVENT_HANDLERS registry.", event_key=event_key)

@@ -2,7 +2,9 @@ from typing import Callable
 
 from application.event_bus_interface import EventBus, EventHandlersRegistry
 from application.event_handler_base import EventHandler
+from application.ws_publisher_interface import WsPublisher
 from core.domain_events import DomainEvent
+from infra.ws_events_registry import WsEventsRegistry
 
 # Фабрика хэндлеров получает класс хэндлера и текущий экземпляр шины,
 # чтобы хэндлер мог публиковать свои события в ту же очередь.
@@ -26,12 +28,31 @@ class AsyncInProcessEventBus(EventBus):
     оно будет обработано рекурсивно — прямо в том же вызове publish().
     """
 
-    def __init__(self, handlers_registry: EventHandlersRegistry, handler_factory: HandlerFactory):
-        self.handlers_registry = handlers_registry
-        self.handler_factory = handler_factory
+    def __init__(
+            self,
+            handlers_registry: EventHandlersRegistry,
+            handler_factory: HandlerFactory,
+            ws_events_registry: WsEventsRegistry,
+            ws_publisher: WsPublisher,
+    ):
+        self._handlers_registry = handlers_registry
+        self._handler_factory = handler_factory
+        self._ws_events_registry = ws_events_registry
+        self._ws_publisher = ws_publisher
 
     async def publish(self, event: DomainEvent) -> None:
-        for handler_cls in self.handlers_registry.get(type(event), []):
-            handler = self.handler_factory(handler_cls, self)  # передаём себя, чтобы хэндлер мог пушить события
-            await handler.handle(event)
+        # WS первым - он лёгкий, не требует сериализации и round-trip до Redis, потом всё остальное
+        await self._notify_ws_subscribers(event)
+        await self._run_handlers(event)
 
+    async def _notify_ws_subscribers(self, event: DomainEvent) -> None:
+        notification_cls = self._ws_events_registry.get(type(event), None)
+        if notification_cls is None:
+            return
+        notification = notification_cls.from_event(event)
+        await self._ws_publisher.notify(notification)
+
+    async def _run_handlers(self, event: DomainEvent) -> None:
+        for handler_cls in self._handlers_registry.get(type(event), []):
+            handler = self._handler_factory(handler_cls, self)  # передаём себя, чтобы хэндлер мог пушить события
+            await handler.handle(event)

@@ -17,7 +17,7 @@ class RateLimitError(DomainError):
 
 
 """
-Non-domain-specific errors, which can be used in any domain,
+Non-domain-specific errors, which can be used in any domain and any layer,
 but not related to business logic, so they are not DomainErrors.
 """
 
