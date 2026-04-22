@@ -165,6 +165,10 @@ class PutProductToCartUseCase(UseCase):
             await self.cart_repo.update(cart)
             await self.product_repo.update(product)
 
+        # product._events содержит ProductWasTakenFromShelf — публикуем для WS-нотификации об остатке
+        for event in product._events:
+            await self.event_bus.publish(event)
+
         await self.event_bus.publish(ProductWasAddedToCart(product_id=product.id, cart_id=cart.id, pcs=cmd.pcs))
 
         return cart
