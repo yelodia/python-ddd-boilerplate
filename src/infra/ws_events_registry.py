@@ -4,7 +4,7 @@ from application.shop.ws_notifications import (
     ProductCreatedWsNotification,
 )
 from application.ws_publisher_interface import WsEventsRegistry
-from core.shop.events import CartUpdated, ProductCreated, ProductChanged
+from core.shop.events import CartChanged, ProductCreated, ProductChanged
 
 """
 Регистр событий для публикации в websocket'ы.
@@ -34,5 +34,5 @@ WsEventsRegistry:
 WS_EVENTS: WsEventsRegistry = {
     ProductChanged: ProductChangedWsNotification,
     ProductCreated: ProductCreatedWsNotification,
-    CartUpdated: CartChangedWsNotification,
+    CartChanged: CartChangedWsNotification,
 }

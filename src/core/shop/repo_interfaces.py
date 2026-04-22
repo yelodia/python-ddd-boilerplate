@@ -67,3 +67,6 @@ class CartRepository(ABC):
 
     @abstractmethod
     async def delete(self, cart_id: int) -> None: ...
+
+    @abstractmethod
+    async def get_carts_with_product(self, product_id: int) -> list[Cart]: ...

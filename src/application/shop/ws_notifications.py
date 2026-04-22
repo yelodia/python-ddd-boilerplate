@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Self
 
 from application.ws_notification_base import WsNotification
-from core.shop.events import CartUpdated, ProductCreated, ProductChanged
+from core.shop.events import CartChanged, ProductCreated, ProductChanged
 
 
 @dataclass(frozen=True)
@@ -30,7 +30,7 @@ class CartChangedWsNotification(WsNotification):
     cart_id: int
 
     @classmethod
-    def from_event(cls, event: CartUpdated) -> Self:
+    def from_event(cls, event: CartChanged) -> Self:
         return cls(cart_id=event.cart_id)
 
     @property

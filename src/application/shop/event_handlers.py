@@ -10,9 +10,11 @@ from core.shop.events import (
     CartWasCleared,
     ProductWasTakenFromShelf,
     ProductWasReturnedToShelf,
+    ProductPriceChanged,
+    CartChanged,
     TheMorningHasCome,
 )
-from core.shop.repo_interfaces import ProductRepository
+from core.shop.repo_interfaces import ProductRepository, CartRepository
 
 logger = structlog.get_logger(__name__)
 
@@ -57,6 +59,20 @@ class ProductWasRemovedFromCartHandler(EventHandler):
 class CartWasClearedHandler(EventHandler):
     async def handle(self, event: CartWasCleared) -> None:
         logger.debug(event)
+
+
+class ProductPriceChangedHandler(EventHandler):
+    """Рассылает cart_changed по всем корзинам, содержащим товар с изменившейся ценой.
+    В БД ничего не трогает — только уведомляет клиентов через шину."""
+
+    def __init__(self, cart_repo: CartRepository, event_bus: EventBus):
+        self.cart_repo = cart_repo
+        self.event_bus = event_bus
+
+    async def handle(self, event: ProductPriceChanged) -> None:
+        carts = await self.cart_repo.get_carts_with_product(event.product_id)
+        for cart in carts:
+            await self.event_bus.publish(CartChanged(cart_id=cart.id))
 
 
 class ProductShelfEventHandler(EventHandler):

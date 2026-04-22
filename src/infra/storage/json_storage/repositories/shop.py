@@ -217,6 +217,14 @@ class JsonCartRepository(CartRepository, JsonRepositoryBase):
         table.data = carts
         await self._save(table)
 
+    async def get_carts_with_product(self, product_id: int) -> list[Cart]:
+        table = await self._load()
+        return [
+            self._to_domain(CartInStorage(**record))
+            for record in table.data
+            if any(item["product_id"] == product_id for item in record.get("items", []))
+        ]
+
     @staticmethod
     def _to_domain(record: CartInStorage) -> Cart:
         """Преобразует запись из хранилища в доменную сущность Cart"""

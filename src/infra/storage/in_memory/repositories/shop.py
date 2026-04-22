@@ -81,3 +81,9 @@ class InMemoryCartRepository(CartRepository):
 
     async def delete(self, cart_id: int) -> None:
         self._carts.pop(cart_id, None)
+
+    async def get_carts_with_product(self, product_id: int) -> list[Cart]:
+        return [
+            cart for cart in self._carts.values()
+            if any(item.product_id == product_id for item in cart.items)
+        ]

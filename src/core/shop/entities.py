@@ -6,10 +6,11 @@ from core.shop.events import (
     ProductWasAddedToCart,
     ProductWasRemovedFromCart,
     CartWasCleared,
-    CartUpdated,
+    CartChanged,
     ProductWasTakenFromShelf,
     ProductWasReturnedToShelf,
     ProductChanged,
+    ProductPriceChanged,
 )
 from core.shop.exceptions import (
     WrongCartItemPcsError,
@@ -60,11 +61,24 @@ class Product(Entity):  # товар на полке магазина / това
         self._events.append(ProductChanged(product_id=self.id))
 
     def update(self, name: str, price: float, description: str) -> None:
-        """Обновляет витринные данные товара и поднимает событие об изменении."""
-        self.name = name
-        self.price = price
-        self.description = description
-        self._events.append(ProductChanged(product_id=self.id))
+        """Обновляет витринные данные товара и поднимает события об изменениях."""
+        changed = False
+
+        if self.price != price:
+            self.price = price
+            self._events.append(ProductPriceChanged(product_id=self.id))
+            changed = True
+
+        if self.name != name:
+            self.name = name
+            changed = True
+
+        if self.description != description:
+            self.description = description
+            changed = True
+
+        if changed:
+            self._events.append(ProductChanged(product_id=self.id))
 
 
 @dataclass
@@ -111,7 +125,7 @@ class Cart(Aggregate):
             existed_item.add(pcs)
 
         self._events.append(ProductWasAddedToCart(product_id=product.id, cart_id=self.id, pcs=pcs))
-        self._events.append(CartUpdated(cart_id=self.id))
+        self._events.append(CartChanged(cart_id=self.id))
 
     """
     Альтернативный вариант, как можно реализовать бизнес-процедуру "положить товар в корзину":
@@ -136,7 +150,7 @@ class Cart(Aggregate):
             existed_item.add(pcs)
 
         self._events.append(ProductWasAddedToCart(product_id=product_id, cart_id=self.id, pcs=pcs))
-        self._events.append(CartUpdated(cart_id=self.id))
+        self._events.append(CartChanged(cart_id=self.id))
 
     # TODO имплементировать уменьшение количества товара в корзине
 
@@ -148,14 +162,14 @@ class Cart(Aggregate):
 
         self.items.remove(found_item)
         self._events.append(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=found_item.pcs))
-        self._events.append(CartUpdated(cart_id=self.id))
+        self._events.append(CartChanged(cart_id=self.id))
 
     def clear(self) -> None:
         for product_id, pcs in [(item.product_id, item.pcs) for item in self.items]:
             self._events.append(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=pcs))
         self.items = []
         self._events.append(CartWasCleared(cart_id=self.id))
-        self._events.append(CartUpdated(cart_id=self.id))
+        self._events.append(CartChanged(cart_id=self.id))
 
     def update_delivery_address(self, delivery_address: DeliveryAddress) -> None:
         if not issubclass(type(delivery_address), DeliveryAddress):

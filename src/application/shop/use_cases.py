@@ -188,7 +188,7 @@ class RemoveProductFromCartUseCase(UseCase):
             await self.cart_repo.update(cart)
 
         # ProductWasRemovedFromCart уходит в шину — хендлер вернёт товар на полку
-        # CartUpdated уходит в шину — шина сама пошлёт WS-уведомление клиентам корзины
+        # CartChanged уходит в шину — шина сама пошлёт WS-уведомление клиентам корзины
         for event in cart._events:
             await self.event_bus.publish(event)
 
@@ -207,7 +207,7 @@ class ClearCartUseCase(UseCase):
             cart.clear()
             await self.cart_repo.update(cart)
 
-        # ProductWasRemovedFromCart × N + CartWasCleared + CartUpdated уходят в шину
+        # ProductWasRemovedFromCart × N + CartWasCleared + CartChanged уходят в шину
         for event in cart._events:
             await self.event_bus.publish(event)
 
