@@ -20,7 +20,7 @@ from infra.observability.logging import setup_logging
 from infra.observability.tracing import setup_tracing
 from infra.storage.json_storage.setup import ensure_json_storage
 from infra.ws.pubsub_listener import ws_pubsub_listener
-from infra.ws_manager import manager
+from infra.ws_manager import ws_manager
 
 
 @asynccontextmanager
@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Отдельный Redis-клиент для pub/sub подписки (ArqRedis не подходит для длинных подписок)
     pubsub_redis = Redis.from_url(str(settings.redis_url))
-    pubsub_task = asyncio.create_task(ws_pubsub_listener(manager, pubsub_redis))
+    pubsub_task = asyncio.create_task(ws_pubsub_listener(ws_manager, pubsub_redis))
 
     yield
 

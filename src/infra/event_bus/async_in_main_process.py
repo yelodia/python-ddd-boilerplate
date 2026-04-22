@@ -35,9 +35,3 @@ class AsyncInProcessEventBus(EventBus):
             handler = self.handler_factory(handler_cls, self)  # передаём себя, чтобы хэндлер мог пушить события
             await handler.handle(event)
 
-
-def async_event_bus_factory(
-        handlers_registry: EventHandlersRegistry,
-        handler_factory: HandlerFactory,
-) -> AsyncInProcessEventBus:
-    return AsyncInProcessEventBus(handlers_registry=handlers_registry, handler_factory=handler_factory)

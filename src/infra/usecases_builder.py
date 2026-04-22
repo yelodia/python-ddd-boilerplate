@@ -10,10 +10,13 @@ from application.uow_interface import UnitOfWork
 from application.use_case_base import UseCase, UowFactory
 from application.ws_publisher_interface import WsPublisher
 from config import settings, SQL, JSON, RAM
-from core.exceptions import UnknownStorageError, UsecaseUnknownParamError
+from core.exceptions import UnknownStorageError, UsecaseUnknownParamError, NotUseCaseOrHandlerError, \
+    ArqClientRequiredError
 from core.items.repo_interfaces import ItemRepository
 from core.shop.repo_interfaces import ProductRepository, CartRepository
-from infra.event_bus.async_in_main_process import async_event_bus_factory
+from infra.event_bus.async_in_arq_worker import AsyncArqEventBus
+from infra.event_bus.async_in_main_process import AsyncInProcessEventBus
+from infra.event_handlers_registry import EVENT_HANDLERS
 from infra.external_tool.dummy_api_client import DummyApiClient
 from infra.reports.csv_report_storage import CsvReportStorage
 from infra.storage.database.basic_stuff import get_session_factory
@@ -25,6 +28,9 @@ from infra.storage.in_memory.uow import in_memory_unit_of_work
 from infra.storage.json_storage.repositories.item import JsonItemRepository
 from infra.storage.json_storage.repositories.shop import JsonProductRepository, JsonCartRepository
 from infra.storage.json_storage.uow import json_unit_of_work
+from infra.ws.publishers.async_in_main_process import InProcessWsPublisher
+from infra.ws.publishers.async_via_redis import RedisWsPublisher
+from infra.ws_manager import ws_manager
 
 S = TypeVar('S')
 RepoRegistry = dict[type, type]
@@ -110,7 +116,7 @@ class UseCasesBuilder:
                 continue
 
             if annotation is WsPublisher:
-                input_params[param_name] = self.get_ws_publisher()
+                input_params[param_name] = self.get_ws_publisher(cls)
                 continue
 
             raise UsecaseUnknownParamError(
@@ -120,16 +126,23 @@ class UseCasesBuilder:
         return input_params
 
     def get_use_case(self, use_case_class: type[UseCase]) -> UseCase:
+        # Юзкейсы живут только пока обрабатывается пользовательский запрос, поэтому у каждого юзкейса будет свой
+        # экземпляр шины - можно по fallback получать свежую шину через get_event_bus() каждый раз
         return use_case_class(**self._inject_params(use_case_class))
         # FIXME рекомендовано полечить неким cast'ом, но я хз куда это пихать
         #  from typing import cast
         #  return cast(UseCase, use_case_class(**input_params))
 
     def build_handler(self, handler_class: type[EventHandler], event_bus: EventBus) -> EventHandler:
+        # Хэндлеры живут только пока обрабатывает событие, но они могут порождать новое событие и вообще
+        # исполняются в отдельном процессе (arq-воркере), им нужна возможность получать готовый инстанс шины, если
+        # таковая уже есть под рукой, а в ином случае - они тоже получат по fallback свежую шину через get_event_bus()
         return handler_class(**self._inject_params(handler_class, event_bus=event_bus))
         # FIXME рекомендовано полечить неким cast'ом, но я хз куда это пихать
         #  from typing import cast
         #  return cast(EventHandler, handler_class(**input_params))
+
+    # region STORAGE THINGS
 
     def get_entity_repo(self, contract: type[S]) -> S:
         # Don't use self.ANY_DICT_OF_STORAGES.get() method here!
@@ -160,26 +173,35 @@ class UseCasesBuilder:
 
         raise UnknownStorageError(f"Unsupported storage backend: {settings.storage_backend}")
 
+    # endregion
+    # region DOMAIN EVENTS AND WS-BEACONS STUFF
+
+    def get_event_bus(self) -> EventBus:
+        if self._arq_client is not None:
+            return AsyncArqEventBus(EVENT_HANDLERS, self._arq_client)
+        return AsyncInProcessEventBus(EVENT_HANDLERS, self.build_handler)
+
+    def get_ws_publisher(self, cls: type) -> WsPublisher:
+        if issubclass(cls, UseCase):
+            return InProcessWsPublisher(ws_manager)
+
+        if issubclass(cls, EventHandler) and self._arq_client is not None:
+            return RedisWsPublisher(self._arq_client)
+
+        if issubclass(cls, EventHandler) and self._arq_client is None:
+            raise ArqClientRequiredError(f"{cls.__name__} without arq_client cannot publish WS notifications")
+
+        raise NotUseCaseOrHandlerError(f"Cannot determine WsPublisher for '{cls.__name__}'")
+
+    # endregion
+    # region EXTERNAL TOOLS AND REPORTS STUFF
+
     @staticmethod
     def get_report_storage() -> ReportStorage:
         return CsvReportStorage(settings.reports_storage_dir)
-
-    def get_event_bus(self) -> EventBus:
-        from infra.event_handlers_registry import EVENT_HANDLERS
-        if self._arq_client is not None:
-            from infra.event_bus.async_in_arq_worker import AsyncArqEventBus
-            return AsyncArqEventBus(EVENT_HANDLERS, self._arq_client)
-        return async_event_bus_factory(EVENT_HANDLERS, self.build_handler)
 
     @staticmethod
     def get_external_tool_client() -> ExternalToolApiClient:
         return DummyApiClient(base_url=settings.dummy_api_base_url, app_id=settings.dummy_api_app_id)
 
-    def get_ws_publisher(self) -> WsPublisher:
-        from infra.ws.redis_ws_publisher import RedisWsPublisher
-        if self._arq_client is None:
-            raise RuntimeError(
-                "WsPublisher недоступен: UseCasesBuilder создан без arq_client. "
-                "WS-нотификаторы должны запускаться только в arq-воркере."
-            )
-        return RedisWsPublisher(self._arq_client)
+    # endregion

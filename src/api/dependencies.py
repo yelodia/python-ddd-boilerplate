@@ -4,7 +4,7 @@ from fastapi import Depends, Request
 
 from application.use_case_base import UseCase
 from infra.usecases_builder import UseCasesBuilder
-from infra.ws_manager import ConnectionManager, manager
+from infra.ws_manager import ConnectionManager, ws_manager
 
 
 def get_builder(request: Request) -> UseCasesBuilder:
@@ -30,8 +30,9 @@ def build(use_case_class: type[UseCase]):
     return Depends(use_case_factory(use_case_class))
 
 
-def get_ws_manager() -> ConnectionManager:
-    return manager
+def ws_manager_factory() -> ConnectionManager:
+    # Depends ожидает получить строго Callable-объект, так что пришлось обернуть готовый менеджер в эту нано-фабрику
+    return ws_manager
 
 
-WsManagerDep = Annotated[ConnectionManager, Depends(get_ws_manager)]
+WsManagerDep = Annotated[ConnectionManager, Depends(ws_manager_factory)]

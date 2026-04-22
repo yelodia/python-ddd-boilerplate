@@ -10,18 +10,21 @@ from application.shop.commands import (
     RemoveProductFromCartCmd,
     ClearCartCmd,
 )
+from application.shop.ws_notifications import CartChangedWsNotification, ProductChangedWsNotification
 from application.use_case_base import UseCase, UowFactory
+from application.ws_publisher_interface import WsPublisher
 from core.shop.entities import Product, Cart
-from core.shop.events import NewCartCreated, ProductWasAddedToCart, ProductCreated
+from core.shop.events import NewCartCreated, ProductCreated
 from core.shop.repo_interfaces import ProductRepository, CartRepository
 from core.shop.services import Shopping
 
 
 class UpdateProductUseCase(UseCase):
-    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
+    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus, ws: WsPublisher):
         self.repo = repo
         self.uow = uow
         self.event_bus = event_bus
+        self.ws = ws
 
     async def execute(self, cmd: UpdateProductCmd) -> Product:
         async with self.uow():
@@ -31,6 +34,8 @@ class UpdateProductUseCase(UseCase):
 
         for event in product._events:
             await self.event_bus.publish(event)
+
+        await self.ws.notify(ProductChangedWsNotification(product_id=product.id))
 
         return product
 
@@ -44,10 +49,11 @@ class ShowAllProductsUseCase(UseCase):
 
 
 class CreateProductUseCase(UseCase):
-    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
+    def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus, ws: WsPublisher):
         self.repo = repo
         self.uow = uow
         self.event_bus = event_bus
+        self.ws = ws
 
     async def execute(self, cmd: CreateProductCmd) -> Product:
         new_product = Product(
@@ -60,16 +66,8 @@ class CreateProductUseCase(UseCase):
         async with self.uow():
             product = await self.repo.create(new_product)
 
-        # ProductCreated публикуется здесь, а не в __post_init__ сущности:
-        # при вызове __post_init__ ID ещё не назначен (его выдаёт хранилище через assign_to_id).
-        # Аналогично NewCartCreated в CreateEmptyCartUseCase.
-        await self.event_bus.publish(ProductCreated(
-            product_id=product.id,
-            name=product.name,
-            price=product.price,
-            description=product.description,
-            stock=product.stock,
-        ))
+        await self.ws.notify(ProductChangedWsNotification(product_id=product.id))
+        await self.event_bus.publish(ProductCreated(product_id=product.id))
 
         return product
 
@@ -83,12 +81,12 @@ class ShowAllCartsUseCase(UseCase):
 
 
 class ShowCartUseCase(UseCase):
-    def __init__(self, repo: CartRepository, product_repo: ProductRepository):
-        self.repo = repo
+    def __init__(self, cart_repo: CartRepository, product_repo: ProductRepository):
+        self.cart_repo = cart_repo
         self.product_repo = product_repo
 
     async def execute(self, cmd: ShowCartCmd) -> tuple[Cart, dict[int, Product]]:
-        cart = await self.repo.get_by_id(cmd.cart_id)
+        cart = await self.cart_repo.get_by_id(cmd.cart_id)
 
         product_ids = [item.product_id for item in cart.items]
         products_by_id = await self.product_repo.get_many_by_ids(product_ids)
@@ -144,16 +142,19 @@ class PutProductToCartUseCase(UseCase):
     - абсолютно вся бизнес-логика вынесена в доменные сервисы и сущности
     """
 
-    def __init__(self,
+    def __init__(
+            self,
             cart_repo: CartRepository,
             product_repo: ProductRepository,
             uow: UowFactory,
-            event_bus: EventBus
+            event_bus: EventBus,
+            ws: WsPublisher,
     ):
         self.cart_repo = cart_repo
         self.product_repo = product_repo
         self.uow = uow
         self.event_bus = event_bus
+        self.ws = ws
 
     async def execute(self, cmd: PutProductToCartCmd) -> Cart:
         async with self.uow():
@@ -165,11 +166,15 @@ class PutProductToCartUseCase(UseCase):
             await self.cart_repo.update(cart)
             await self.product_repo.update(product)
 
-        # product._events содержит ProductWasTakenFromShelf — публикуем для WS-нотификации об остатке
         for event in product._events:
             await self.event_bus.publish(event)
 
-        await self.event_bus.publish(ProductWasAddedToCart(product_id=product.id, cart_id=cart.id, pcs=cmd.pcs))
+        for event in cart._events:
+            await self.event_bus.publish(event)
+
+        # WS-уведомления прямо здесь: у нас уже есть и товар, и корзина — незачем гонять их через arq
+        await self.ws.notify(CartChangedWsNotification(cart_id=cart.id))
+        await self.ws.notify(ProductChangedWsNotification(product_id=product.id))
 
         return cart
 
@@ -180,12 +185,14 @@ class RemoveProductFromCartUseCase(UseCase):
             cart_repo: CartRepository,
             product_repo: ProductRepository,
             uow: UowFactory,
-            event_bus: EventBus
+            event_bus: EventBus,
+            ws: WsPublisher,
     ):
         self.cart_repo = cart_repo
         self.product_repo = product_repo
         self.uow = uow
         self.event_bus = event_bus
+        self.ws = ws
 
     async def execute(self, cmd: RemoveProductFromCartCmd) -> Cart:
         async with self.uow():
@@ -193,17 +200,22 @@ class RemoveProductFromCartUseCase(UseCase):
             cart.remove_product(cmd.product_id)
             await self.cart_repo.update(cart)
 
+        # ProductWasRemovedFromCart уходит в шину — хендлер вернёт товар на полку
+        # и сам пушнет ProductChangedWsNotification через свой WsPublisher
         for event in cart._events:
             await self.event_bus.publish(event)
+
+        await self.ws.notify(CartChangedWsNotification(cart_id=cart.id))
 
         return cart
 
 
 class ClearCartUseCase(UseCase):
-    def __init__(self, cart_repo: CartRepository, uow: UowFactory, event_bus: EventBus):
+    def __init__(self, cart_repo: CartRepository, uow: UowFactory, event_bus: EventBus, ws: WsPublisher):
         self.cart_repo = cart_repo
         self.uow = uow
         self.event_bus = event_bus
+        self.ws = ws
 
     async def execute(self, cmd: ClearCartCmd) -> Cart:
         async with self.uow():
@@ -211,7 +223,11 @@ class ClearCartUseCase(UseCase):
             cart.clear()
             await self.cart_repo.update(cart)
 
+        # ProductWasRemovedFromCart на каждый товар + CartWasCleared уходят в шину
+        # хендлеры вернут каждый товар на полку и пушнут ProductChangedWsNotification
         for event in cart._events:
             await self.event_bus.publish(event)
+
+        await self.ws.notify(CartChangedWsNotification(cart_id=cart.id))
 
         return cart

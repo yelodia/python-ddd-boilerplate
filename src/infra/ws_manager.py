@@ -14,7 +14,7 @@ class ConnectionManager:
       - "products"       — все подписчики витрины (broadcast)
       - "cart:{cart_id}" — подписчики конкретной корзины (targeted push)
 
-    Синглтон: живёт в памяти одного FastAPI-процесса. Для многопроцессного деплоя
+    Почти что "синглтон": сабж живёт в памяти одного FastAPI-процесса. Для многопроцессного деплоя
     доставка между процессами осуществляется через Redis Pub/Sub (см. infra/ws/pubsub_listener.py).
     """
 
@@ -42,4 +42,4 @@ class ConnectionManager:
             self._connections[topic].discard(ws)
 
 
-manager = ConnectionManager()
+ws_manager = ConnectionManager()

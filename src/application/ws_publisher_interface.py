@@ -1,13 +1,18 @@
 from abc import ABC, abstractmethod
 
+from application.ws_notification_base import WsNotification
+
 
 class WsPublisher(ABC):
     """
-    Абстракция для публикации уведомлений в WebSocket-слой.
+    Абстракция для доставки WS-уведомлений клиентам.
 
-    Позволяет хендлерам (application layer) отправлять push-уведомления клиентам,
-    не зная ничего о конкретном транспорте (Redis Pub/Sub, in-process очередь и т.п.).
+    Принимает WsNotification — application-layer объект с явным topic и payload.
+
+    Конкретная реализация WsPublisher решает, как доставить:
+    - напрямую через ConnectionManager (InProcessWsPublisher, для FastAPI-процесса);
+    - или через Redis Pub/Sub (RedisWsPublisher, для arq-воркеров).
     """
 
     @abstractmethod
-    async def publish(self, channel: str, payload: dict) -> None: ...
+    async def notify(self, notification: WsNotification) -> None: ...

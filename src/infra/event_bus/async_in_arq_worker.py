@@ -91,10 +91,9 @@ class AsyncArqEventBus(EventBus):
         event_key = _class_path(type(event))
 
         if event_key not in self._index:
-            logger.warning("arq_event_bus: событие не найдено в регистре, пропускаем", event_key=event_key)
+            logger.warning("Event not found in register, skip", event_key=event_key)
             return
 
         event_data = serialize_event(event)
         await self._arq_client.enqueue_job(HANDLERS_PROCESSING_TASK_NAME, event_key=event_key, event_data=event_data)
-        logger.debug("arq_event_bus: задание поставлено в очередь", event_key=event_key)
-
+        logger.debug("Job queued", event_key=event_key)

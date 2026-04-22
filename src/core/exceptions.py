@@ -26,3 +26,9 @@ class UnknownStorageError(Exception): pass
 
 
 class UsecaseUnknownParamError(Exception): pass
+
+
+class ArqClientRequiredError(Exception): pass
+
+
+class NotUseCaseOrHandlerError(Exception): pass

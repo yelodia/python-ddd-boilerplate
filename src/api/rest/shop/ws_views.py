@@ -2,10 +2,10 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from api.dependencies import WsManagerDep
 
-ws_router = APIRouter(tags=["websocket"])
+ws_router = APIRouter(prefix="/ws", tags=["websocket"])
 
 
-@ws_router.websocket("/ws/products")
+@ws_router.websocket("/products")
 async def products_ws(websocket: WebSocket, mgr: WsManagerDep) -> None:
     """
     WebSocket-подписка на обновления витрины.
@@ -22,7 +22,7 @@ async def products_ws(websocket: WebSocket, mgr: WsManagerDep) -> None:
         mgr.disconnect(websocket, topic="products")
 
 
-@ws_router.websocket("/ws/carts/{cart_id}")
+@ws_router.websocket("/carts/{cart_id}")
 async def cart_ws(websocket: WebSocket, cart_id: int, mgr: WsManagerDep) -> None:
     """
     WebSocket-подписка на обновления конкретной корзины.

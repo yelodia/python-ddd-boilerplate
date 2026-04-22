@@ -8,21 +8,13 @@ from application.shop.event_handlers import (
     ProductShelfEventHandler,
     StockReplenishmentRequestedHandler,
 )
-from application.shop.ws_notification_handlers import (
-    ProductCreatedWsNotifier,
-    ProductStockWsNotifier,
-    ProductInfoWsNotifier,
-    CartWsNotifier,
-)
 from core.shop.events import (
     NewCartCreated,
-    ProductCreated,
     ProductWasAddedToCart,
     ProductWasRemovedFromCart,
     CartWasCleared,
     ProductWasTakenFromShelf,
     ProductWasReturnedToShelf,
-    ProductUpdated,
     TheMorningHasCome,
     StockReportRequested,
 )
@@ -32,12 +24,12 @@ from core.shop.events import (
 
 Здесь обработчики событий ассоциируются с конкретными событиями.
 
-На одно событие может быть назначено несколько обработчиков, особенно если из разных доменов - это вполне ок, 
+На одно событие может быть назначено несколько обработчиков, особенно если из разных доменов - это вполне ок,
 для того шина с регистром и существуют.
 
 Один обработчик может быть заинтересован в нескольких событиях, это тоже нормальная история, но тогда он будет
 обязан уметь работать со всеми типами событий, с которыми он связан. Единственное место,
-где это явно декларируется - это данный регистр. Сигнатуры методов .handle() роли не играют и никак не учитываются 
+где это явно декларируется - это данный регистр. Сигнатуры методов .handle() роли не играют и никак не учитываются
 шиной - она просто пинает обработчик каждый раз, когда в ней появляется объект подходящего события.
 
 После создания в системе нового обработчика - его нужно обязательно добавить в этот реестр,
@@ -46,16 +38,18 @@ from core.shop.events import (
 При создании нового события (пока ещё без обработчика) - добавлять его в реестр не обязательно, но желательно.
 В целом ничего криминального не случится, но без регистрации в реестре про это событие потенциально можно забыть,
 или что оно вообще существует в коде и что к нему нужно дописать обработчик.
+
+WS-уведомления НЕ отправляются через хендлеры в этом реестре!
+Конкретные UseCase и EventHandler сами решают, что и когда пушить как WsNotification-объекты напрямую в WsPublisher.
+WsNotification - НЕ доменные события и НЕ их замена. Это просто декларация намерения уведомить клиента через WebSocket.
 """
 EVENT_HANDLERS: EventHandlersRegistry = {
     NewCartCreated: [NewCartCreatedHandler],
-    ProductCreated: [ProductCreatedWsNotifier],
-    ProductWasAddedToCart: [ProductWasAddedToCartHandler, CartWsNotifier],
-    ProductWasRemovedFromCart: [ProductWasRemovedFromCartHandler, CartWsNotifier],
-    CartWasCleared: [CartWasClearedHandler, CartWsNotifier],
-    ProductWasTakenFromShelf: [ProductShelfEventHandler, ProductStockWsNotifier],
-    ProductWasReturnedToShelf: [ProductShelfEventHandler, ProductStockWsNotifier],
-    ProductUpdated: [ProductInfoWsNotifier],
+    ProductWasAddedToCart: [ProductWasAddedToCartHandler],
+    ProductWasRemovedFromCart: [ProductWasRemovedFromCartHandler],
+    CartWasCleared: [CartWasClearedHandler],
+    ProductWasTakenFromShelf: [ProductShelfEventHandler],
+    ProductWasReturnedToShelf: [ProductShelfEventHandler],
     TheMorningHasCome: [
         StockReplenishmentRequestedHandler,  # пополняет запасы товаров на полках (условный "мерчендайзер")
         # Раз уж событие "наступило утро" специально столь расплывчатое, то это хороший пример хотелки бизнеса,
