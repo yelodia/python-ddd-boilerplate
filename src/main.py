@@ -8,11 +8,12 @@ from fastapi import FastAPI, APIRouter
 from pydantic import BaseModel
 from redis.asyncio import Redis
 
-from api.rest.items.views import router as items_router
+from api.rest.items.views import items_router
+from api.rest.items.ws_views import items_ws_router
 from api.rest.posts.views import posts_router
 from api.rest.root_error_handlers import bind_error_handlers_to
 from api.rest.shop.views import products_router, carts_router
-from api.rest.shop.ws_views import ws_router
+from api.rest.shop.ws_views import shop_ws_router
 from config import get_settings
 from infra.middleware.correlation import CorrelationMiddleware
 from infra.middleware.logging import LoggingMiddleware
@@ -71,12 +72,22 @@ def create_app() -> FastAPI:
 
     bind_error_handlers_to(app)
 
+    # подготовка "большого" роутера - все включенные в него роутеры будут иметь префикс /api/v1
     router = APIRouter(prefix="/api/v1")
+
+    # вьюшки bounded context'а items
     router.include_router(items_router)
+    router.include_router(items_ws_router)
+
+    # вьюшки bounded context'а shop
     router.include_router(products_router)
     router.include_router(carts_router)
+    router.include_router(shop_ws_router)
+
+    # вьюшки bounded context'а posts
     router.include_router(posts_router)
-    router.include_router(ws_router)
+
+    # подключение получившегося большого роутера в само fastapi-приложение
     app.include_router(router)
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])

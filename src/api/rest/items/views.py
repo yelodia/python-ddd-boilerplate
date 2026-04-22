@@ -1,9 +1,8 @@
 from uuid import UUID
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, status
 from pydantic import BaseModel
 
-from api.dependencies import WsManagerDep
 from api.dependencies import build
 from api.rest.items.responses import ItemResponse
 from application.items.commands import (
@@ -21,7 +20,7 @@ from application.items.use_cases import (
     DeleteItemUseCase,
 )
 
-router = APIRouter(prefix="/items", tags=["items"])
+items_router = APIRouter(prefix="/items", tags=["items"])
 
 """
 TODO при добавлении новой сущности:
@@ -34,7 +33,7 @@ TODO при добавлении новой сущности:
 """
 
 
-@router.get("/", response_model=list[ItemResponse])
+@items_router.get("/", response_model=list[ItemResponse])
 async def list_items(
         offset: int = 0,
         limit: int = 10,
@@ -45,7 +44,7 @@ async def list_items(
     return [ItemResponse.from_domain(x) for x in items]
 
 
-@router.get("/{item_id}", response_model=ItemResponse)
+@items_router.get("/{item_id}", response_model=ItemResponse)
 async def get_item(
         item_id: UUID,
         use_case: GetItemUseCase = build(GetItemUseCase),
@@ -55,7 +54,7 @@ async def get_item(
     return ItemResponse.from_domain(item)
 
 
-@router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
+@items_router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_item(
         cmd: CreateItemCmd,
         use_case: CreateItemUseCase = build(CreateItemUseCase),
@@ -68,7 +67,8 @@ class UpdateItemRequestBody(BaseModel):
     title: str
     description: str | None = None
 
-@router.put("/{item_id}", response_model=ItemResponse)
+
+@items_router.put("/{item_id}", response_model=ItemResponse)
 async def update_item(
         item_id: UUID,
         body: UpdateItemRequestBody,
@@ -79,21 +79,10 @@ async def update_item(
     return ItemResponse.from_domain(item)
 
 
-@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@items_router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
         item_id: UUID,
         use_case: DeleteItemUseCase = build(DeleteItemUseCase),
 ) -> None:
     cmd = DeleteItemCmd(item_id=item_id)
     await use_case.execute(cmd)
-
-
-@router.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket, mgr: WsManagerDep) -> None:
-    await mgr.connect(ws, topic="items")
-    try:
-        while True:
-            data = await ws.receive_text()
-            await mgr.broadcast("items", {"message": data})
-    except WebSocketDisconnect:
-        mgr.disconnect(ws, topic="items")
