@@ -16,6 +16,10 @@ _STATUS_CODES: dict[type[Exception], int] = {
 }
 _STATUS_CODES.update(item_specific_codes)
 
+_CUSTOM_HANDLERS = {
+    # you should unpack here all other custom handlers, if they exist
+    **item_handlers,
+}
 
 async def default_domain_errors_handler(request, exc) -> JSONResponse:
     """
@@ -66,12 +70,8 @@ def bind_error_handlers_to(app: FastAPI) -> None:
         - Then - default handler for all DomainError exceptions
         - Finally - generic handler for all other exceptions
     """
-    custom_handlers = {
-        # you should unpack here all other custom handlers, if they exist
-        **item_handlers,
-    }
 
-    for ext_type, handler in custom_handlers.items():
+    for ext_type, handler in _CUSTOM_HANDLERS.items():
         app.add_exception_handler(ext_type, handler)
 
     for ext_type in _STATUS_CODES.keys():
