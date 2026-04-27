@@ -1,0 +1,31 @@
+from uuid import UUID
+
+from core.items.entities import Item
+from core.items.exceptions import ItemAlreadyExistsError, ItemNotFoundError
+from core.items.repo_interfaces import ItemRepository
+
+
+class InMemoryItemRepository(ItemRepository):
+    def __init__(self) -> None:
+        self._items: dict[UUID, Item] = {}
+
+    async def get_by_id(self, item_id: UUID) -> Item:
+        item = self._items.get(item_id)
+        if not item:
+            raise ItemNotFoundError(f"Item with ID {item_id} not found")
+        return item
+
+    async def get_slice(self, offset: int = 0, limit: int = 20) -> list[Item]:
+        items = sorted(self._items.values(), key=lambda i: i.id)
+        return items[offset:offset + limit]
+
+    async def create(self, item: Item) -> None:
+        if item.id in self._items.keys():
+            raise ItemAlreadyExistsError(f"Item with ID {item.id} already exists")
+        self._items[item.id] = item
+
+    async def update(self, item: Item) -> None:
+        self._items[item.id] = item
+
+    async def delete(self, item_id: UUID) -> None:
+        self._items.pop(item_id, None)

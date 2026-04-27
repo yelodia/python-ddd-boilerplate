@@ -1,12 +1,22 @@
 from functools import lru_cache
 
-from pydantic import PostgresDsn, RedisDsn
+from pydantic import PostgresDsn, RedisDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# TODO для чувствительных параметров (например, API-ключей и паролей) стоит использовать специальные типы,
+#  (например, SecretStr вместо обычных строк str), чтобы избежать их утечки в логи или отладочные traceback'и:
+#  https://pydantic.dev/docs/validation/latest/api/pydantic/types/#pydantic.types.SecretStr
+
+
+# константы-литералы для удобства & избегания "магических строк" в коде
+SQL = 'sql'
+JSON = 'json'
+RAM = 'ram'
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env"),  # "искать .env в текущей и в родительской папке"
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
@@ -16,8 +26,8 @@ class Settings(BaseSettings):
     app_debug: bool = False
     app_secret_key: str = "dev-secret-key"
 
-    # Storage backend: "json" | "sql"
-    storage_backend: str = "json"
+    # Storage backend: SQL | JSON | RAM
+    storage_backend: str = JSON
 
     # JSON storage (Phase 1)
     json_data_dir: str = "data"
@@ -28,7 +38,7 @@ class Settings(BaseSettings):
     database_max_overflow: int = 20
 
     # Redis
-    redis_url: RedisDsn = "redis://localhost:6379/0"  # type: ignore[assignment]
+    redis_url: RedisDsn = RedisDsn("redis://localhost:6379/0")
 
     # OpenTelemetry
     otel_enabled: bool = False
@@ -38,6 +48,13 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
+    # Reports storage
+    reports_storage_dir: str = "data/reports"
+
+    # External Clients API settings
+    dummy_api_base_url: str = "https://example.com/api/v1"
+    dummy_api_app_id: str = "your-app-id"
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
@@ -45,6 +62,34 @@ class Settings(BaseSettings):
     @property
     def use_json_storage(self) -> bool:
         return self.storage_backend == "json"
+
+    @model_validator(mode="before")
+    @classmethod
+    def lowercase_fields(cls, values: dict) -> dict:
+        """
+        Приведение специфичных полей к ожидаемому формату (регистру).
+
+        Да, благодаря pydantic_settings и его настройке case_sensitive=False,
+        поля будут не чувствительны к регистру при считывании из .env или из переменных окружения (ENV),
+        однако в сам Settings() они будут записаны ровно в том виде, в котором были объявлены в .env или ENV.
+
+        Этот валидатор гарантирует, что даже если в .env будет указано "SQL", "Sql" или "sql",
+        то внутри приложения мы всегда будем работать со значениями в ожидаемом регистре: "sql".
+        """
+        # for fields to lowercase
+        for key in ("app_env", "storage_backend"):
+            if isinstance(values.get(key), str):
+                values[key] = values[key].lower()
+
+        # for fields to uppercase
+        for key in ("log_level",):
+            if isinstance(values.get(key), str):
+                values[key] = values[key].upper()
+
+        return values
+
+
+settings = Settings()
 
 
 @lru_cache

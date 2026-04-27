@@ -89,31 +89,55 @@ make down    # stop
 
 ## Project Structure
 
+Horizontal layers on top, vertical domain slices inside each layer.
+Dependency direction: `api/ → application/ → core/ ← infrastructure/`.
+
 ```
 src/
-├── main.py              # entry point, app factory
-├── config.py            # settings via pydantic-settings
-├── database.py          # SQLAlchemy engine (Phase 2)
-├── dependencies.py      # global FastAPI Depends
-├── observability/       # structlog + OpenTelemetry
-├── middleware/          # correlation ID, request logging
-├── infrastructure/      # domain-agnostic infrastructure
-│   └── ws_manager.py    # WebSocket ConnectionManager
-├── common/              # shared schemas
-├── items/               # example domain
-│   ├── domain.py        # pure objects and functions (no IO, no logs)
-│   ├── schemas.py       # Pydantic API contract (separate from domain)
-│   ├── service.py       # pure business logic (no logger)
-│   ├── use_cases.py     # coordination + logging + mapping → schemas
-│   ├── router.py        # HTTP + WebSocket endpoints
-│   ├── repository/      # data layer
-│   │   ├── abstract.py  # interface
-│   │   ├── json_impl.py # JSON (Phase 1)
-│   │   └── sql_impl.py  # PostgreSQL (Phase 2)
-│   └── tasks.py         # arq background tasks
-└── worker/
-    └── settings.py      # arq worker registry
+├── config.py                        # pydantic-settings, @lru_cache
+├── main.py                          # composition root: FastAPI app factory
+├── worker.py                        # composition root: arq WorkerSettings
+│
+├── api/                             # PRESENTATION layer
+│   ├── dependencies.py              # DI-wiring (FastAPI Depends)
+│   └── rest/
+│       ├── exception_handlers.py    # auto-discovery of error handlers
+│       └── {domain}/                # items/, auth/, ...
+│           ├── views.py             # HTTP endpoints
+│           ├── schemas.py           # Pydantic request/response + from_domain()
+│           └── error_handlers.py    # domain exceptions → HTTP codes
+│
+├── application/                     # APPLICATION layer
+│   └── {domain}/
+│       ├── use_cases.py             # coordination + structured logging
+│       └── tasks.py                 # arq background tasks (if needed)
+│
+├── core/                            # DOMAIN + SERVICE layer
+│   └── {domain}/
+│       ├── entities.py              # Rich Domain Model (frozen dataclass)
+│       ├── exceptions.py            # pure domain exceptions
+│       ├── service.py               # business logic (no logger, no IO)
+│       └── repository.py            # abstract interface (ABC)
+│
+├── infrastructure/                  # INFRASTRUCTURE layer
+│   ├── database/                    # SQL backend
+│   │   ├── base.py                  # engine, session factory
+│   │   ├── uow.py                  # Unit of Work (transactions only)
+│   │   ├── models/{domain}.py       # SQLAlchemy ORM models
+│   │   └── repositories/{domain}.py # SQL repository implementations
+│   ├── file_storage/                # JSON backend
+│   │   ├── setup.py                 # ensure data dir + seed files
+│   │   └── repositories/{domain}.py # JSON repository implementations
+│   ├── in_memory/                   # in-memory backend (for tests)
+│   │   └── repositories/{domain}.py
+│   └── ws_manager.py               # WebSocket ConnectionManager
+│
+├── middleware/                      # correlation ID, request logging
+├── observability/                   # structlog + OpenTelemetry
+└── common/                          # shared schemas (HealthResponse, etc.)
 ```
+
+See [AGENT_ARCHITECTURE.md](../AGENT_ARCHITECTURE.md) for detailed rules and conventions.
 
 ---
 
