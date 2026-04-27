@@ -5,13 +5,6 @@ from pydantic import BaseModel
 
 from api.dependencies import build
 from api.rest.items.responses import ItemResponse
-from application.items.commands import (
-    CreateItemCmd,
-    ShowAllItemsCmd,
-    GetItemCmd,
-    UpdateItemCmd,
-    DeleteItemCmd,
-)
 from application.items.use_cases import (
     ShowAllItemsUseCase,
     CreateItemUseCase,
@@ -39,7 +32,7 @@ async def list_items(
         limit: int = 10,
         use_case: ShowAllItemsUseCase = build(ShowAllItemsUseCase),
 ) -> list[ItemResponse]:
-    cmd = ShowAllItemsCmd(offset=offset, limit=limit)
+    cmd = use_case.cmd(offset=offset, limit=limit)
     items = await use_case.execute(cmd)
     return [ItemResponse.from_domain(x) for x in items]
 
@@ -49,16 +42,22 @@ async def get_item(
         item_id: UUID,
         use_case: GetItemUseCase = build(GetItemUseCase),
 ) -> ItemResponse:
-    cmd = GetItemCmd(item_id=item_id)
+    cmd = use_case.cmd(item_id=item_id)
     item = await use_case.execute(cmd)
     return ItemResponse.from_domain(item)
 
 
+class CreateItemRequest(BaseModel):
+    title: str
+    description: str | None = None
+
+
 @items_router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_item(
-        cmd: CreateItemCmd,
+        body: CreateItemRequest,
         use_case: CreateItemUseCase = build(CreateItemUseCase),
 ) -> ItemResponse:
+    cmd = use_case.cmd(title=body.title, description=body.description)
     item = await use_case.execute(cmd)
     return ItemResponse.from_domain(item)
 
@@ -74,7 +73,7 @@ async def update_item(
         body: UpdateItemRequestBody,
         use_case: UpdateItemUseCase = build(UpdateItemUseCase),
 ) -> ItemResponse:
-    cmd = UpdateItemCmd(item_id=item_id, **body.dict())
+    cmd = use_case.cmd(item_id=item_id, title=body.title, description=body.description)
     item = await use_case.execute(cmd)
     return ItemResponse.from_domain(item)
 
@@ -84,5 +83,5 @@ async def delete_item(
         item_id: UUID,
         use_case: DeleteItemUseCase = build(DeleteItemUseCase),
 ) -> None:
-    cmd = DeleteItemCmd(item_id=item_id)
+    cmd = use_case.cmd(item_id=item_id)
     await use_case.execute(cmd)

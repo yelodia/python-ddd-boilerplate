@@ -4,7 +4,6 @@ from application.shop.commands import (
     CreateProductCmd,
     UpdateProductCmd,
     CreateEmptyCartCmd,
-    ShowAllCartsCmd,
     PutProductToCartCmd,
     ShowCartCmd,
     RemoveProductFromCartCmd,
@@ -19,6 +18,8 @@ from core.shop.services import Shopping
 
 
 class UpdateProductUseCase(UseCase):
+    cmd = UpdateProductCmd
+
     def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
         self.repo = repo
         self.uow = uow
@@ -37,6 +38,8 @@ class UpdateProductUseCase(UseCase):
 
 
 class ShowAllProductsUseCase(UseCase):
+    cmd = ShowAllProductsCmd
+
     def __init__(self, repo: ProductRepository):
         self.repo = repo
 
@@ -45,6 +48,8 @@ class ShowAllProductsUseCase(UseCase):
 
 
 class CreateProductUseCase(UseCase):
+    cmd = CreateProductCmd
+
     def __init__(self, repo: ProductRepository, uow: UowFactory, event_bus: EventBus):
         self.repo = repo
         self.uow = uow
@@ -66,15 +71,9 @@ class CreateProductUseCase(UseCase):
         return product
 
 
-class ShowAllCartsUseCase(UseCase):
-    def __init__(self, repo: CartRepository):
-        self.repo = repo
-
-    async def execute(self, cmd: ShowAllCartsCmd) -> list[Cart]:
-        return await self.repo.get_slice(cmd.offset, cmd.limit)
-
-
 class ShowCartUseCase(UseCase):
+    cmd = ShowCartCmd
+
     def __init__(self, cart_repo: CartRepository, product_repo: ProductRepository):
         self.cart_repo = cart_repo
         self.product_repo = product_repo
@@ -101,6 +100,8 @@ class ShowCartUseCase(UseCase):
 
 
 class CreateEmptyCartUseCase(UseCase):
+    cmd = CreateEmptyCartCmd
+
     def __init__(self, repo: CartRepository, uow: UowFactory, event_bus: EventBus):
         self.repo = repo
         self.uow = uow
@@ -121,6 +122,8 @@ class CreateEmptyCartUseCase(UseCase):
 
 
 class PutProductToCartUseCase(UseCase):
+    cmd = PutProductToCartCmd
+
     """
     Образец альтернативной организации юзкейса, когда бизнес-логика вынесена в доменный сервис (Shopping).
      - юзкейс всё ещё отвечает за оркестрацию:
@@ -169,6 +172,8 @@ class PutProductToCartUseCase(UseCase):
 
 
 class RemoveProductFromCartUseCase(UseCase):
+    cmd = RemoveProductFromCartCmd
+
     def __init__(
             self,
             cart_repo: CartRepository,
@@ -196,6 +201,8 @@ class RemoveProductFromCartUseCase(UseCase):
 
 
 class ClearCartUseCase(UseCase):
+    cmd = ClearCartCmd
+
     def __init__(self, cart_repo: CartRepository, uow: UowFactory, event_bus: EventBus):
         self.cart_repo = cart_repo
         self.uow = uow

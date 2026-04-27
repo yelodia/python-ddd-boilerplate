@@ -16,6 +16,8 @@ logger = structlog.get_logger(__name__)
 
 
 class ShowAllItemsUseCase(UseCase):
+    cmd = ShowAllItemsCmd
+
     def __init__(self, repo: ItemRepository):
         self.repo = repo
 
@@ -24,6 +26,8 @@ class ShowAllItemsUseCase(UseCase):
 
 
 class GetItemUseCase(UseCase):
+    cmd = GetItemCmd
+
     def __init__(self, repo: ItemRepository):
         self.repo = repo
 
@@ -33,6 +37,8 @@ class GetItemUseCase(UseCase):
 
 
 class CreateItemUseCase(UseCase):
+    cmd = CreateItemCmd
+
     def __init__(self, repo: ItemRepository, uow: UowFactory):
         self.repo = repo
         self.uow = uow
@@ -47,6 +53,8 @@ class CreateItemUseCase(UseCase):
 
 
 class UpdateItemUseCase(UseCase):
+    cmd = UpdateItemCmd
+
     def __init__(self, repo: ItemRepository, uow: UowFactory):
         self.repo = repo
         self.uow = uow
@@ -64,6 +72,8 @@ class UpdateItemUseCase(UseCase):
 
 
 class DeleteItemUseCase(UseCase):
+    cmd = DeleteItemCmd
+
     def __init__(self, repo: ItemRepository, uow: UowFactory):
         self.repo = repo
         self.uow = uow

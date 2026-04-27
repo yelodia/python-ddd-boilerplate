@@ -4,6 +4,8 @@ from application.use_case_base import UseCase
 
 
 class GetPostsUseCase(UseCase):
+    cmd = RequestPostCmd
+
     def __init__(self, client: ExternalToolApiClient):
         self.client = client
 

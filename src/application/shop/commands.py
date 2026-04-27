@@ -1,49 +1,49 @@
-from pydantic import BaseModel
+from application.use_case_base import Command
 
 
-class ShowAllProductsCmd(BaseModel):
+class ShowAllProductsCmd(Command):
     offset: int = 0
     limit: int = 20
 
 
-class CreateProductCmd(BaseModel):
+class CreateProductCmd(Command):
     name: str
     price: float
     description: str
 
 
-class UpdateProductCmd(BaseModel):
+class UpdateProductCmd(Command):
     product_id: int
     name: str
     price: float
     description: str
 
 
-class ShowAllCartsCmd(BaseModel):
+class ShowAllCartsCmd(Command):
     offset: int = 0
     limit: int = 20
 
 
-class CreateEmptyCartCmd(BaseModel):
+class CreateEmptyCartCmd(Command):
     pass
 
 
-class ShowCartCmd(BaseModel):
+class ShowCartCmd(Command):
     cart_id: int
 
 
-class PutProductToCartCmd(BaseModel):
+class PutProductToCartCmd(Command):
     cart_id: int
     product_id: int
     pcs: int
 
 
-class RemoveProductFromCartCmd(BaseModel):
+class RemoveProductFromCartCmd(Command):
     cart_id: int
     product_id: int
 
 
-class UpdateCartDeliveryAddressCmd(BaseModel):
+class UpdateCartDeliveryAddressCmd(Command):
     cart_id: int
     city: str
     street: str
@@ -51,9 +51,9 @@ class UpdateCartDeliveryAddressCmd(BaseModel):
     apartment: int
 
 
-class ClearCartCmd(BaseModel):
+class ClearCartCmd(Command):
     cart_id: int
 
 
-class RemoveCart(BaseModel):
+class RemoveCart(Command):
     cart_id: int

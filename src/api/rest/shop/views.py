@@ -12,16 +12,6 @@ from api.rest.shop.responses import (
     RichCartItemResponse,
     DeliveryAddressResponse,
 )
-from application.shop.commands import (
-    ShowAllProductsCmd,
-    CreateProductCmd,
-    UpdateProductCmd,
-    CreateEmptyCartCmd,
-    PutProductToCartCmd,
-    ShowCartCmd,
-    ClearCartCmd,
-    RemoveProductFromCartCmd,
-)
 from application.shop.use_cases import (
     ShowAllProductsUseCase,
     CreateProductUseCase,
@@ -44,16 +34,23 @@ async def show_all_products(
         limit: int = 20,
         use_case: ShowAllProductsUseCase = build(ShowAllProductsUseCase),
 ) -> list[ProductResponse]:
-    cmd = ShowAllProductsCmd(offset=offset, limit=limit)
+    cmd = use_case.cmd(offset=offset, limit=limit)
     products = await use_case.execute(cmd)
     return [ProductResponse.model_validate(asdict(x)) for x in products]
 
 
+class CreateProductRequest(BaseModel):
+    name: str
+    price: float
+    description: str
+
+
 @products_router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
-        cmd: CreateProductCmd,
+        body: CreateProductRequest,
         use_case: CreateProductUseCase = build(CreateProductUseCase),
 ) -> ProductResponse:
+    cmd = use_case.cmd(name=body.name, price=body.price, description=body.description)
     product = await use_case.execute(cmd)
     return ProductResponse.model_validate(asdict(product))
 
@@ -70,7 +67,7 @@ async def update_product(
         body: UpdateProductRequest,
         use_case: UpdateProductUseCase = build(UpdateProductUseCase),
 ) -> ProductResponse:
-    cmd = UpdateProductCmd(
+    cmd = use_case.cmd(
         product_id=body.id,
         name=body.name,
         price=body.price,
@@ -86,7 +83,7 @@ async def update_product(
 async def create_empty_cart(
         use_case: CreateEmptyCartUseCase = build(CreateEmptyCartUseCase)
 ) -> CartResponse:
-    cmd = CreateEmptyCartCmd()
+    cmd = use_case.cmd()
     new_cart = await use_case.execute(cmd)
     return CartResponse.model_validate(asdict(new_cart))
 
@@ -98,7 +95,7 @@ async def put_product_to_cart(
         pcs: int,
         use_case: PutProductToCartUseCase = build(PutProductToCartUseCase),
 ) -> CartResponse:
-    cmd = PutProductToCartCmd(cart_id=cart_id, product_id=product_id, pcs=pcs)
+    cmd = use_case.cmd(cart_id=cart_id, product_id=product_id, pcs=pcs)
     updated_cart = await use_case.execute(cmd)
     return CartResponse.model_validate(asdict(updated_cart))
 
@@ -108,7 +105,7 @@ async def get_cart(
         cart_id: int,
         use_case: ShowCartUseCase = build(ShowCartUseCase),
 ) -> ShowCartResponse:
-    cmd = ShowCartCmd(cart_id=cart_id)
+    cmd = use_case.cmd(cart_id=cart_id)
     cart, products_by_id = await use_case.execute(cmd)
 
     rich_items = [
@@ -141,7 +138,7 @@ async def remove_product_from_cart(
         product_id: int,
         use_case: RemoveProductFromCartUseCase = build(RemoveProductFromCartUseCase),
 ) -> CartResponse:
-    cmd = RemoveProductFromCartCmd(cart_id=cart_id, product_id=product_id)
+    cmd = use_case.cmd(cart_id=cart_id, product_id=product_id)
     updated_cart = await use_case.execute(cmd)
     return CartResponse.model_validate(asdict(updated_cart))
 
@@ -151,7 +148,7 @@ async def clear_cart(
         cart_id: int,
         use_case: ClearCartUseCase = build(ClearCartUseCase),
 ) -> CartResponse:
-    cmd = ClearCartCmd(cart_id=cart_id)
+    cmd = use_case.cmd(cart_id=cart_id)
     cart = await use_case.execute(cmd)
     return CartResponse.model_validate(asdict(cart))
 

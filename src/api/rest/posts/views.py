@@ -2,7 +2,6 @@ from fastapi import APIRouter
 
 from api.dependencies import build
 from api.rest.posts.responses import PostsResponse, Post
-from application.posts.commands import RequestPostCmd
 from application.posts.use_cases import GetPostsUseCase
 
 posts_router = APIRouter(prefix="/posts", tags=["posts"])
@@ -14,7 +13,7 @@ async def show_few_posts(
         limit: int = 20,
         use_case: GetPostsUseCase = build(GetPostsUseCase),
 ) -> PostsResponse:
-    cmd = RequestPostCmd(page=page, limit=limit)
+    cmd = use_case.cmd(page=page, limit=limit)
     current_page, client_response = await use_case.execute(cmd)
 
     return PostsResponse(
