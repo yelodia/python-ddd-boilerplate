@@ -1,67 +1,88 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from uuid import UUID
 
-from src.api.dependencies import ItemUseCasesDep, UowDep, WsManagerDep
-from src.api.rest.items.schemas import ItemCreate, ItemResponse, ItemUpdate
+from fastapi import APIRouter, status
+from pydantic import BaseModel
 
-router = APIRouter()
+from api.dependencies import build
+from api.rest.items.responses import ItemResponse
+from application.items.commands import (
+    CreateItemCmd,
+    ShowAllItemsCmd,
+    GetItemCmd,
+    UpdateItemCmd,
+    DeleteItemCmd,
+)
+from application.items.use_cases import (
+    ShowAllItemsUseCase,
+    CreateItemUseCase,
+    GetItemUseCase,
+    UpdateItemUseCase,
+    DeleteItemUseCase,
+)
+
+items_router = APIRouter(prefix="/items", tags=["items"])
+
+"""
+TODO при добавлении новой сущности:
+1) создать сущность в core/*/entities.py
+2) создать новый репозиторий (интерфейс) в слое core/BOUNDED_CONTEXT/repo_interfaces.py
+3) создать реализацию репозитория в слое infra/STORAGE_IMPL/repositories/*.py
+4) "зарегистрировать" реализации репозиториев в "билдере" infra/usecases_builder.py
+5) создать команды и юзкейсы в слое application
+6) создать вьюшки и накормить их свежесозданными юзкейсами
+"""
 
 
-@router.get("/", response_model=list[ItemResponse])
+@items_router.get("/", response_model=list[ItemResponse])
 async def list_items(
-    use_cases: ItemUseCasesDep,
-    offset: int = 0,
-    limit: int = 20,
+        offset: int = 0,
+        limit: int = 10,
+        use_case: ShowAllItemsUseCase = build(ShowAllItemsUseCase),
 ) -> list[ItemResponse]:
-    items = await use_cases.list_items(offset=offset, limit=limit)
-    return [ItemResponse.from_domain(i) for i in items]
+    cmd = ShowAllItemsCmd(offset=offset, limit=limit)
+    items = await use_case.execute(cmd)
+    return [ItemResponse.from_domain(x) for x in items]
 
 
-@router.get("/{item_id}", response_model=ItemResponse)
-async def get_item(item_id: int, use_cases: ItemUseCasesDep) -> ItemResponse:
-    item = await use_cases.get_item(item_id)
+@items_router.get("/{item_id}", response_model=ItemResponse)
+async def get_item(
+        item_id: UUID,
+        use_case: GetItemUseCase = build(GetItemUseCase),
+) -> ItemResponse:
+    cmd = GetItemCmd(item_id=item_id)
+    item = await use_case.execute(cmd)
     return ItemResponse.from_domain(item)
 
 
-@router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
+@items_router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_item(
-    body: ItemCreate,
-    use_cases: ItemUseCasesDep,
-    _uow: UowDep,
+        cmd: CreateItemCmd,
+        use_case: CreateItemUseCase = build(CreateItemUseCase),
 ) -> ItemResponse:
-    item = await use_cases.create_item(title=body.title, description=body.description)
+    item = await use_case.execute(cmd)
     return ItemResponse.from_domain(item)
 
 
-@router.patch("/{item_id}", response_model=ItemResponse)
+class UpdateItemRequestBody(BaseModel):
+    title: str
+    description: str | None = None
+
+
+@items_router.put("/{item_id}", response_model=ItemResponse)
 async def update_item(
-    item_id: int,
-    body: ItemUpdate,
-    use_cases: ItemUseCasesDep,
-    _uow: UowDep,
+        item_id: UUID,
+        body: UpdateItemRequestBody,
+        use_case: UpdateItemUseCase = build(UpdateItemUseCase),
 ) -> ItemResponse:
-    item = await use_cases.update_item(
-        item_id,
-        title=body.title,
-        description=body.description,
-    )
+    cmd = UpdateItemCmd(item_id=item_id, **body.dict())
+    item = await use_case.execute(cmd)
     return ItemResponse.from_domain(item)
 
 
-@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@items_router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
-    item_id: int,
-    use_cases: ItemUseCasesDep,
-    _uow: UowDep,
+        item_id: UUID,
+        use_case: DeleteItemUseCase = build(DeleteItemUseCase),
 ) -> None:
-    await use_cases.delete_item(item_id)
-
-
-@router.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket, mgr: WsManagerDep) -> None:
-    await mgr.connect(ws)
-    try:
-        while True:
-            data = await ws.receive_text()
-            await mgr.broadcast(f"broadcast: {data}")
-    except WebSocketDisconnect:
-        mgr.disconnect(ws)
+    cmd = DeleteItemCmd(item_id=item_id)
+    await use_case.execute(cmd)

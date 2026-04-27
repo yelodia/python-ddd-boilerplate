@@ -2,36 +2,32 @@
 name = "my-app"
 version = "0.1.0"
 requires-python = ">=3.12"
+package = { include = ["src"] }
 
 dependencies = [
     # Web
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
-
     # DB
     "sqlalchemy[asyncio]>=2.0.36",
     "asyncpg>=0.30.0",
     "alembic>=1.14.0",
-
     # Config
     "pydantic-settings>=2.6.0",
     "pydantic[email]>=2.10.0",
-
     # Background tasks
     "arq>=0.26.0",
-
     # Async file I/O (JsonRepository)
     "aiofiles>=24.1.0",
-
     # Logging
     "structlog>=24.4.0",
-
     # Tracing
     "opentelemetry-sdk>=1.28.0",
     "opentelemetry-instrumentation-fastapi>=0.49b0",
     "opentelemetry-instrumentation-sqlalchemy>=0.49b0",
     "opentelemetry-instrumentation-httpx>=0.49b0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.28.0",
+    "httpx>=0.28.1",
 ]
 
 [project.optional-dependencies]

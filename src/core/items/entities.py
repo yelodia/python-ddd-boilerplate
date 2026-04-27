@@ -1,23 +1,34 @@
-from dataclasses import dataclass, replace
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
+
+from core.items.exceptions import TitleCannotBeEmptyError, TitleTooLongError
 
 
-@dataclass(frozen=True)
-class ItemData:
-    id: int
+@dataclass(kw_only=True)
+class Item:
+    id: UUID = field(default_factory=uuid4)
     title: str
     description: str | None
-    is_active: bool
-    created_at: datetime
+    is_active: bool | None = False
+    created_at: datetime = field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
-    def deactivate(self) -> "ItemData":  # TODO: wire to PATCH endpoint
-        return replace(self, is_active=False)
+    def deactivate(self) -> None:  # TODO: wire to PATCH endpoint
+        self.is_active = False
 
-    def activate(self) -> "ItemData":  # TODO: wire to PATCH endpoint
-        return replace(self, is_active=True)
+    def activate(self) -> None:  # TODO: wire to PATCH endpoint
+        self.is_active = True
 
-    def update_title(self, new_title: str) -> "ItemData":
-        cleaned = new_title.strip()
-        if not cleaned or len(cleaned) > 255:
-            raise ValueError(f"Invalid item title: must be 1-255 chars, got {len(cleaned)}")
-        return replace(self, title=cleaned)
+    def rename(self, new_title: str) -> None:
+        new_title = new_title.strip()
+
+        if not new_title:
+            raise TitleCannotBeEmptyError("Title cannot be empty")
+
+        if len(new_title) > 255:
+            raise TitleTooLongError(f"Title must be 1-255 chars, got {len(new_title)}")
+
+        self.title = new_title
+
+    def set_description(self, new_description: str | None) -> None:
+        self.description = new_description

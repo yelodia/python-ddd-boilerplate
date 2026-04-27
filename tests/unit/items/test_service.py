@@ -1,8 +1,9 @@
+# FIXME требует актуализации - да, импорт ItemService сломан, вместо него давно используются отдельные юзкейсы!
 import pytest
+from core.items.service import ItemService
 
-from src.core.items.exceptions import ItemNotFoundError
-from src.core.items.service import ItemService
-from src.infrastructure.in_memory.repositories.items import InMemoryItemRepository
+from core.items.exceptions import ItemNotFoundError
+from infra.storage.in_memory.repositories.item import InMemoryItemRepository
 
 
 @pytest.fixture
