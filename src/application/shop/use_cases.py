@@ -30,7 +30,7 @@ class UpdateProductUseCase(UseCase):
             product.update(name=cmd.name, price=cmd.price, description=cmd.description)
             await self.repo.update(product)
 
-        for event in product._events:
+        for event in product.events.pull():
             await self.event_bus.publish(event)
 
         return product
@@ -159,10 +159,10 @@ class PutProductToCartUseCase(UseCase):
             await self.cart_repo.update(cart)
             await self.product_repo.update(product)
 
-        for event in product._events:
+        for event in product.events.pull():
             await self.event_bus.publish(event)
 
-        for event in cart._events:
+        for event in cart.events.pull():
             await self.event_bus.publish(event)
 
         return cart
@@ -189,7 +189,7 @@ class RemoveProductFromCartUseCase(UseCase):
 
         # ProductWasRemovedFromCart уходит в шину — хендлер вернёт товар на полку
         # CartChanged уходит в шину — шина сама пошлёт WS-уведомление клиентам корзины
-        for event in cart._events:
+        for event in cart.events.pull():
             await self.event_bus.publish(event)
 
         return cart
@@ -208,7 +208,7 @@ class ClearCartUseCase(UseCase):
             await self.cart_repo.update(cart)
 
         # ProductWasRemovedFromCart × N + CartWasCleared + CartChanged уходят в шину
-        for event in cart._events:
+        for event in cart.events.pull():
             await self.event_bus.publish(event)
 
         return cart

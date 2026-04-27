@@ -1,11 +1,14 @@
 from dataclasses import dataclass, field
 
+from core.domain_events import EventsEngine
+
 
 # Запрещаем dataclass автоматически генерировать __eq__ метод,
 #  потому что мы хотим сравнивать сущности строго только по id, а не по всем полям - этого требует DDD
 @dataclass(eq=False)
 class Entity:
     id: int | None = field(default=None)
+    events: EventsEngine = field(default_factory=EventsEngine, init=False, repr=False)
 
     def assign_to_id(self, value: int) -> None:
         """
@@ -64,15 +67,17 @@ class Entity:
 
 # Агрегат - это то же, что и Entity. Просто может содержать в себе
 # вложенные Entity и ValueObjects, а так же сам командует ими.
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, eq=False)
 class Aggregate(Entity):
     pass
 
 
 # Сообщаем dataclass, чтобы он сделал класс иммутабельным,
 # т.е. защищённым от любых изменений после его инициализации - этого требует DDD
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class ValueObject:
+    events: EventsEngine = field(default_factory=EventsEngine, init=False, repr=False)
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, type(self)):
             raise TypeError(

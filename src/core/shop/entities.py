@@ -21,13 +21,12 @@ from core.shop.exceptions import (
 )
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, eq=False)
 class Product(Entity):  # товар на полке магазина / товар на витрине
     name: str
     price: float
     description: str
     stock: int = 0  # количество единиц товара на полке
-    _events: list = field(default_factory=list, init=False, repr=False)
 
     def __post_init__(self):
         if self.stock < 0:
@@ -42,23 +41,23 @@ class Product(Entity):  # товар на полке магазина / това
                 f'Недостаточно товара на полке: запрошено {pcs}, доступно {self.stock}'
             )
         self.stock -= pcs
-        self._events.append(ProductWasTakenFromShelf(product_id=self.id, pcs=pcs))
-        self._events.append(ProductChanged(product_id=self.id))
+        self.events.put(ProductWasTakenFromShelf(product_id=self.id, pcs=pcs))
+        self.events.put(ProductChanged(product_id=self.id))
 
     def return_to_shelf(self, pcs: int) -> None:
         """Увеличивает остаток на полке (покупатель убрал товар из корзины)."""
         if pcs < 1:
             raise ValueError('Количество должно быть не менее 1')
         self.stock += pcs
-        self._events.append(ProductWasReturnedToShelf(product_id=self.id, pcs=pcs))
-        self._events.append(ProductChanged(product_id=self.id))
+        self.events.put(ProductWasReturnedToShelf(product_id=self.id, pcs=pcs))
+        self.events.put(ProductChanged(product_id=self.id))
 
     def stock_replenishment(self, new_stock_qty: int) -> None:
         """Пополняет остаток на полке (условный "мерчендайзер" положил товар на полку)."""
         if new_stock_qty < 1:
             raise ValueError('Количество должно быть не менее 1')
         self.stock = new_stock_qty
-        self._events.append(ProductChanged(product_id=self.id))
+        self.events.put(ProductChanged(product_id=self.id))
 
     def update(self, name: str, price: float, description: str) -> None:
         """Обновляет витринные данные товара и поднимает события об изменениях."""
@@ -66,7 +65,7 @@ class Product(Entity):  # товар на полке магазина / това
 
         if self.price != price:
             self.price = price
-            self._events.append(ProductPriceChanged(product_id=self.id))
+            self.events.put(ProductPriceChanged(product_id=self.id))
             changed = True
 
         if self.name != name:
@@ -78,10 +77,10 @@ class Product(Entity):  # товар на полке магазина / това
             changed = True
 
         if changed:
-            self._events.append(ProductChanged(product_id=self.id))
+            self.events.put(ProductChanged(product_id=self.id))
 
 
-@dataclass
+@dataclass(kw_only=True, eq=False)
 class Cart(Aggregate):
     """
     Модель покупательской корзины
@@ -97,8 +96,6 @@ class Cart(Aggregate):
     items: list[CartItem] = field(default_factory=list)
     delivery_address: DeliveryAddress | None = None
     created_at: datetime | None = field(default_factory=lambda: datetime.now(tz=timezone.utc))
-    _events: list = field(default_factory=list, init=False, repr=False)
-
     @property
     def total_amount(self) -> float:
         return sum(item.cost for item in self.items)
@@ -124,8 +121,8 @@ class Cart(Aggregate):
         if existed_item:
             existed_item.add(pcs)
 
-        self._events.append(ProductWasAddedToCart(product_id=product.id, cart_id=self.id, pcs=pcs))
-        self._events.append(CartChanged(cart_id=self.id))
+        self.events.put(ProductWasAddedToCart(product_id=product.id, cart_id=self.id, pcs=pcs))
+        self.events.put(CartChanged(cart_id=self.id))
 
     """
     Альтернативный вариант, как можно реализовать бизнес-процедуру "положить товар в корзину":
@@ -149,8 +146,8 @@ class Cart(Aggregate):
         if existed_item:
             existed_item.add(pcs)
 
-        self._events.append(ProductWasAddedToCart(product_id=product_id, cart_id=self.id, pcs=pcs))
-        self._events.append(CartChanged(cart_id=self.id))
+        self.events.put(ProductWasAddedToCart(product_id=product_id, cart_id=self.id, pcs=pcs))
+        self.events.put(CartChanged(cart_id=self.id))
 
     # TODO имплементировать уменьшение количества товара в корзине
 
@@ -161,15 +158,15 @@ class Cart(Aggregate):
             raise ProductNotFoundError(f'Товара с id {product_id} нет в корзине')
 
         self.items.remove(found_item)
-        self._events.append(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=found_item.pcs))
-        self._events.append(CartChanged(cart_id=self.id))
+        self.events.put(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=found_item.pcs))
+        self.events.put(CartChanged(cart_id=self.id))
 
     def clear(self) -> None:
         for product_id, pcs in [(item.product_id, item.pcs) for item in self.items]:
-            self._events.append(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=pcs))
+            self.events.put(ProductWasRemovedFromCart(product_id=product_id, cart_id=self.id, pcs=pcs))
         self.items = []
-        self._events.append(CartWasCleared(cart_id=self.id))
-        self._events.append(CartChanged(cart_id=self.id))
+        self.events.put(CartWasCleared(cart_id=self.id))
+        self.events.put(CartChanged(cart_id=self.id))
 
     def update_delivery_address(self, delivery_address: DeliveryAddress) -> None:
         if not issubclass(type(delivery_address), DeliveryAddress):
@@ -201,7 +198,7 @@ class CartItem:
     # TODO имплементировать уменьшение количества товара в корзине
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class DeliveryAddress(ValueObject):
     # объект-значение - потому что адрес просто коробка для нескольких полей из сущности Cart
     city: str
