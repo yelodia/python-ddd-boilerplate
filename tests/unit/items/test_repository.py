@@ -4,14 +4,14 @@
 import pytest
 
 from core.items.repo_interfaces import ItemRepository
-from infra.storage.in_memory.repositories.item import InMemoryItemRepository
-from infra.storage.json_storage.repositories.item import JsonItemRepository
+from infra.storage.json.repositories.item import JsonItemRepository
+from infra.storage.ram.repositories.item import RamItemRepository
 
 
 @pytest.fixture(params=["in_memory", "json"])
 async def repo(request: pytest.FixtureRequest, tmp_path) -> ItemRepository:
     if request.param == "in_memory":
-        return InMemoryItemRepository()
+        return RamItemRepository()
     (tmp_path / "items.json").write_text("[]")
     return JsonItemRepository(data_dir=str(tmp_path))
 

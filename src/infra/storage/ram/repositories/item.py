@@ -5,7 +5,7 @@ from core.items.exceptions import ItemAlreadyExistsError, ItemNotFoundError
 from core.items.repo_interfaces import ItemRepository
 
 
-class InMemoryItemRepository(ItemRepository):
+class RamItemRepository(ItemRepository):
     def __init__(self) -> None:
         self._items: dict[UUID, Item] = {}
 

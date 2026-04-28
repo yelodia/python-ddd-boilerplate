@@ -51,7 +51,7 @@ class JsonItemRepository(ItemRepository):
         await self._save(items)
 
     async def delete(self, item_id: UUID) -> None:
-        items = [i for i in await self._load() if i["id"] != item_id]
+        items = [i for i in await self._load() if i["id"] != str(item_id)]
         await self._save(items)
 
     @staticmethod
@@ -65,6 +65,8 @@ class JsonItemRepository(ItemRepository):
         )
 
     async def _load(self) -> list[dict]:
+        if not self.path.exists():
+            await self._save([])
         async with aiofiles.open(self.path, encoding="utf-8") as f:
             result: list[dict] = json.loads(await f.read())
             return result

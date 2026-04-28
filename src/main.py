@@ -19,7 +19,7 @@ from infra.middleware.correlation import CorrelationMiddleware
 from infra.middleware.logging import LoggingMiddleware
 from infra.observability.logging import setup_logging
 from infra.observability.tracing import setup_tracing
-from infra.storage.json_storage.setup import ensure_json_storage
+from infra.storage.json.setup import ensure_json_storage
 from infra.ws.pubsub_listener import ws_pubsub_listener
 from infra.ws_manager import ws_manager
 

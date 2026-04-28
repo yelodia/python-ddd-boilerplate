@@ -20,12 +20,12 @@ from infra.reports.csv_report_storage import CsvReportStorage
 from infra.storage.database.basic_stuff import get_session_factory
 from infra.storage.database.repositories.item import SqlItemRepository
 from infra.storage.database.uow import sql_unit_of_work
-from infra.storage.in_memory.repositories.item import InMemoryItemRepository
-from infra.storage.in_memory.repositories.shop import InMemoryProductRepository, InMemoryCartRepository
-from infra.storage.in_memory.uow import in_memory_unit_of_work
-from infra.storage.json_storage.repositories.item import JsonItemRepository
-from infra.storage.json_storage.repositories.shop import JsonProductRepository, JsonCartRepository
-from infra.storage.json_storage.uow import json_unit_of_work
+from infra.storage.json.repositories.item import JsonItemRepository
+from infra.storage.json.repositories.shop import JsonProductRepository, JsonCartRepository
+from infra.storage.json.uow import json_unit_of_work
+from infra.storage.ram.repositories.item import RamItemRepository
+from infra.storage.ram.repositories.shop import RamProductRepository, InMemoryCartRepository
+from infra.storage.ram.uow import in_memory_unit_of_work
 from infra.ws.publishers.ws_in_main_process import InProcessWsPublisher
 from infra.ws_events_registry import WS_EVENTS
 from infra.ws_manager import ws_manager
@@ -72,8 +72,8 @@ class UseCasesBuilder:
         CartRepository: JsonCartRepository,
     }
     RAM: ClassVar[RepoRegistry] = {
-        ItemRepository: InMemoryItemRepository,
-        ProductRepository: InMemoryProductRepository,
+        ItemRepository: RamItemRepository,
+        ProductRepository: RamProductRepository,
         CartRepository: InMemoryCartRepository,
     }
 

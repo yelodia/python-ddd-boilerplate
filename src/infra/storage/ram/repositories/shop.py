@@ -8,7 +8,7 @@ from core.shop.exceptions import ProductNotFoundError, CartNotFoundError
 from core.shop.repo_interfaces import ProductRepository, CartRepository
 
 
-class InMemoryProductRepository(ProductRepository):
+class RamProductRepository(ProductRepository):
     def __init__(self) -> None:
         self._products: dict[int, Product] = {}
         self._auto_increment_id = 0

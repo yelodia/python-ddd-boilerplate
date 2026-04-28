@@ -3,12 +3,12 @@ import pytest
 from core.items.service import ItemService
 
 from core.items.exceptions import ItemNotFoundError
-from infra.storage.in_memory.repositories.item import InMemoryItemRepository
+from infra.storage.ram.repositories.item import RamItemRepository
 
 
 @pytest.fixture
 def service() -> ItemService:
-    return ItemService(InMemoryItemRepository())
+    return ItemService(RamItemRepository())
 
 
 async def test_create_and_get(service: ItemService) -> None:
