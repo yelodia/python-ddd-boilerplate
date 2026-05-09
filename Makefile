@@ -1,52 +1,53 @@
-.PHONY: install install-dev dev worker migrate migrate-new lint lint-fix \
-        type-check test infra-up infra-down start-local start-json up down logs
+.PHONY: install install-dev dev worker cron-worker migrate migrate-new migrate-down \
+        lint lint-fix type-check test start-json \
+        dev-infra-up dev-infra-down up down logs
 
 install:
-	pip install -e .
+	uv sync --active
 
 install-dev:
-	pip install -e ".[dev]"
+	uv sync --active --extra dev
 
-infra-up:
-	docker compose up -d postgres redis
+dev-infra-up:
+	sudo docker compose -f docker-compose-dev.yml up -d --build
 
-infra-down:
-	docker compose stop postgres redis
+dev-infra-down:
+	sudo docker compose -f docker-compose-dev.yml down
 
 dev:
-	uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+	cd src && uv run --active python -m uvicorn main:create_app --host=127.0.0.1 --port=8081 --reload
 
 worker:
-	arq src.worker.WorkerSettings
+	cd src && uv run --active python ./domain_events_worker.py
 
-start-local:
-	uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
+cron-worker:
+	cd src && uv run --active python ./cron_tasks_worker.py
 
 start-json:
-	STORAGE_BACKEND=json uvicorn src.main:app --reload --port 8000
+	cd src && STORAGE_BACKEND=json uv run --active python -m uvicorn main:create_app --host=127.0.0.1 --port=8081 --reload
 
 migrate:
-	alembic upgrade head
+	cd src && uv run --active alembic upgrade head
 
 migrate-new:
-	alembic revision --autogenerate -m "$(name)"
+	cd src && uv run --active alembic revision --autogenerate -m "$(name)"
 
 migrate-down:
-	alembic downgrade -1
+	cd src && uv run --active alembic downgrade -1
 
 lint:
-	ruff check src tests
-	ruff format --check src tests
+	uv run --active ruff check src tests
+	uv run --active ruff format --check src tests
 
 lint-fix:
-	ruff check --fix src tests
-	ruff format src tests
+	uv run --active ruff check --fix src tests
+	uv run --active ruff format src tests
 
 type-check:
-	mypy src
+	uv run --active mypy src
 
 test:
-	pytest tests/ -v --cov=src --cov-report=term-missing
+	uv run --active pytest tests/ -v --cov=src --cov-report=term-missing
 
 up:
 	docker compose up --build -d

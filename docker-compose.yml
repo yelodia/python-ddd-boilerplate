@@ -1,5 +1,6 @@
 services:
   postgres:
+    container_name: my-app-postgres
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: user
@@ -16,6 +17,7 @@ services:
       retries: 5
 
   redis:
+    container_name: my-app-redis
     image: redis:7-alpine
     ports:
       - "6379:6379"
@@ -26,6 +28,7 @@ services:
       retries: 5
 
   app:
+    container_name: my-app-web
     build: .
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000
     ports:
@@ -38,6 +41,7 @@ services:
         condition: service_healthy
 
   worker:
+    container_name: my-app-worker
     build: .
     command: arq src.worker.settings.WorkerSettings
     env_file: .env

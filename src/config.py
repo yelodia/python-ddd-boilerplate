@@ -1,7 +1,12 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import PostgresDsn, RedisDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BASE_DIR = Path(__file__).parent.parent  # project root
+DATA_DIR = BASE_DIR / "data"  # at same level as src/, for storing databases, JSON files, reports, etc.
 
 # TODO для чувствительных параметров (например, API-ключей и паролей) стоит использовать специальные типы,
 #  (например, SecretStr вместо обычных строк str), чтобы избежать их утечки в логи или отладочные traceback'и:
@@ -30,7 +35,7 @@ class Settings(BaseSettings):
     storage_backend: str = JSON
 
     # JSON storage (Phase 1)
-    json_data_dir: str = "data"
+    json_data_dir: str = str(DATA_DIR / "json_storage")
 
     # Database (Phase 2)
     database_url: PostgresDsn | None = None
